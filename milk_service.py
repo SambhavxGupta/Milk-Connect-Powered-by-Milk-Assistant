@@ -1,3 +1,4 @@
+import json
 import os
 import gspread
 
@@ -6,6 +7,7 @@ from datetime import datetime, timedelta, date
 from google.oauth2.service_account import Credentials
 
 load_dotenv()
+
 # =====================================================
 # GOOGLE SHEET SETUP
 # =====================================================
@@ -14,16 +16,34 @@ SCOPES = [
     "https://www.googleapis.com/auth/spreadsheets"
 ]
 
-creds = Credentials.from_service_account_file(
-    "service_account.json",
-    scopes=SCOPES
+google_creds_json = os.getenv(
+    "GOOGLE_CREDS_JSON"
 )
+
+if google_creds_json:
+
+    creds_dict = json.loads(
+        google_creds_json
+    )
+
+    creds = Credentials.from_service_account_info(
+        creds_dict,
+        scopes=SCOPES
+    )
+
+else:
+
+    creds = Credentials.from_service_account_file(
+        "service_account.json",
+        scopes=SCOPES
+    )
 
 client = gspread.authorize(creds)
 
 SPREADSHEET_ID = os.getenv(
     "SPREADSHEET_ID"
 )
+
 if not SPREADSHEET_ID:
     raise Exception(
         "SPREADSHEET_ID missing in .env file"
