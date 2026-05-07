@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Milk Assistant</title>
+    <style>
+        body {
+            font-family: Arial;
+            background: #f5f5f5;
+            padding: 20px;
+        }
+
+        #chat {
+            background: white;
+            padding: 15px;
+            border-radius: 10px;
+            height: 400px;
+            overflow-y: auto;
+            margin-bottom: 10px;
+        }
+
+        .msg {
+            margin: 10px 0;
+        }
+
+        .user {
+            color: blue;
+        }
+
+        .bot {
+            color: green;
+        }
+
+        input {
+            width: 80%;
+            padding: 10px;
+        }
+
+        button {
+            padding: 10px;
+        }
+    </style>
+</head>
+<body>
+
+<h2>🥛 Milk Assistant</h2>
+
+<div id="chat"></div>
+
+<input type="text" id="message" placeholder="Type message...">
+<button onclick="sendMessage()">Send</button>
+
+<script>
+let session_id = null;
+
+async function sendMessage() {
+    let input = document.getElementById("message");
+    let text = input.value;
+
+    if (!text) return;
+
+    let chat = document.getElementById("chat");
+
+    chat.innerHTML += `<div class="msg user"><b>You:</b> ${text}</div>`;
+
+    let response = await fetch("/chat", {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+            message: text,
+            session_id: session_id
+        })
+    });
+
+    let data = await response.json();
+
+    session_id = data.session_id;
+
+    chat.innerHTML += `<div class="msg bot"><b>Bot:</b> ${data.reply}</div>`;
+
+    input.value = "";
+    chat.scrollTop = chat.scrollHeight;
+}
+</script>
+
+</body>
+</html>
