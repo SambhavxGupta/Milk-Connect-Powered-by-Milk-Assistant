@@ -1,12 +1,25 @@
+print("MILK SERVICE START")
+
 import json
+print("1")
+
 import os
+print("2")
+
 import gspread
+print("3")
 
 from dotenv import load_dotenv
+print("4")
+
 from datetime import datetime, timedelta, date
+print("5")
+
 from google.oauth2.service_account import Credentials
+print("6")
 
 load_dotenv()
+print("7")
 
 # =====================================================
 # GOOGLE SHEET SETUP
@@ -19,6 +32,8 @@ SCOPES = [
 google_creds_json = os.getenv(
     "GOOGLE_CREDS_JSON"
 )
+print("8")
+print("GOOGLE_CREDS_JSON:", bool(google_creds_json))
 
 if google_creds_json:
 
@@ -39,10 +54,13 @@ else:
     )
 
 client = gspread.authorize(creds)
+print("10")
 
 SPREADSHEET_ID = os.getenv(
     "SPREADSHEET_ID"
 )
+print("9")
+print("SPREADSHEET_ID:", SPREADSHEET_ID)
 
 if not SPREADSHEET_ID:
     raise Exception(
@@ -52,6 +70,7 @@ if not SPREADSHEET_ID:
 sheet = client.open_by_key(
     SPREADSHEET_ID
 ).sheet1
+print("11")
 
 print("✅ Google Sheet connected successfully")
 # =====================================================
@@ -106,12 +125,16 @@ def find_column(headers, keywords):
 # GET CUSTOMER INFO
 # =====================================================
 
-
 def get_customer_info(mobile):
-
+    
     all_values = sheet.get_all_values()
 
     headers = all_values[0]
+
+    name_col = find_column(
+        headers,
+        ["name"]
+    )
 
     mobile_col = find_column(
         headers,
@@ -126,6 +149,16 @@ def get_customer_info(mobile):
     liter_col = find_column(
         headers,
         ["liter", "litre"]
+    )
+
+    flat_col = find_column(
+        headers,
+        ["flat"]
+    )
+
+    balance_col = find_column(
+        headers,
+        ["balance"]
     )
 
     if mobile_col is None:
@@ -144,12 +177,39 @@ def get_customer_info(mobile):
 
             return {
                 "row": row_idx,
-                "status": row[status_col].strip() if status_col is not None else "",
-                "liter": row[liter_col].strip() if liter_col is not None else "1"
+
+                "name": (
+                    row[name_col].strip()
+                    if name_col is not None and len(row) > name_col
+                    else "Customer"
+                ),
+
+                "status": (
+                    row[status_col].strip()
+                    if status_col is not None and len(row) > status_col
+                    else ""
+                ),
+
+                "liter": (
+                    row[liter_col].strip()
+                    if liter_col is not None and len(row) > liter_col
+                    else "1"
+                ),
+
+                "flat_no": (
+                    row[flat_col].strip()
+                    if flat_col is not None and len(row) > flat_col
+                    else ""
+                ),
+
+                "remaining_balance": (
+                    row[balance_col].strip()
+                    if balance_col is not None and len(row) > balance_col
+                    else "0"
+                )
             }
 
     return None
-
 # =====================================================
 # FIND CUSTOMER ROW
 # =====================================================
@@ -259,7 +319,6 @@ def show_delivery_calendar(mobile):
 # HANDLE PAUSE
 # =====================================================
 
-
 def handle_pause(
     mobile,
     start_date_str,
@@ -323,10 +382,26 @@ def handle_pause(
                 "Ab"
             )
 
+            sheet.format(cell, {
+                "backgroundColor": {
+                    "red": 1,
+                    "green": 0.8,
+                    "blue": 0.8
+                },
+                "textFormat": {
+                    "foregroundColor": {
+                        "red": 0.6,
+                        "green": 0,
+                        "blue": 0
+                    },
+                    "bold": True
+                }
+            })
+
             updated = True
 
     if updated:
-    
+
         write_log(
             mobile,
             "PAUSE",
@@ -340,7 +415,6 @@ def handle_pause(
 # =====================================================
 # HANDLE RESUME
 # =====================================================
-
 
 def handle_resume(mobile):
 
@@ -359,7 +433,7 @@ def handle_resume(mobile):
 
     for idx, value in enumerate(values, start=1):
 
-        if value == "Ab":
+        if str(value).strip().lower() == "ab":
 
             cell = gspread.utils.rowcol_to_a1(
                 row,
@@ -371,10 +445,26 @@ def handle_resume(mobile):
                 str(default_quantity)
             )
 
+            sheet.format(cell, {
+                "backgroundColor": {
+                    "red": 1,
+                    "green": 1,
+                    "blue": 1
+                },
+                "textFormat": {
+                    "foregroundColor": {
+                        "red": 0,
+                        "green": 0,
+                        "blue": 0
+                    },
+                    "bold": False
+                }
+            })
+
             updated = True
 
     if updated:
-    
+
         write_log(
             mobile,
             "RESUME",
@@ -384,7 +474,46 @@ def handle_resume(mobile):
         return "✅ Milk resumed successfully."
 
     return "✅ No paused entries found."
+# =====================================================
+# GET CUSTOMER CALENDAR DATA
+# =====================================================
 
+def get_customer_calendar(mobile):
+
+    customer = get_customer_info(mobile)
+
+    if not customer:
+        return {
+            "paused_days": []
+        }
+
+    row = customer["row"]
+
+    headers = sheet.row_values(1)
+    values = sheet.row_values(row)
+
+    paused_days = []
+
+    for idx, header in enumerate(headers):
+
+        parsed = parse_header_date(header)
+
+        if not parsed:
+            continue
+
+        if idx >= len(values):
+            continue
+
+        value = str(values[idx]).strip()
+
+        if value.lower() == "ab":
+            paused_days.append(parsed.day)
+
+    return {
+        "paused_days": paused_days
+    }
+    
+    
 # =====================================================
 # HANDLE MODIFY QUANTITY
 # =====================================================

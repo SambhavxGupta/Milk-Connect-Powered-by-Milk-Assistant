@@ -1,1 +1,1 @@
-web: python webchat_app.py
+web: gunicorn webchat_app:app
