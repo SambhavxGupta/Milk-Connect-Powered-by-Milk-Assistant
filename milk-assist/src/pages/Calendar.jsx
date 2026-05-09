@@ -35,7 +35,7 @@ useEffect(() => {
     if (!mobile) return
 
     try {
-      const res = await fetch('http://127.0.0.1:5000/api/calendar-data', {
+      const res = await fetch('https://milk-connect-powered-by-milk-assistant.onrender.com/api/calendar-data', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ mobile })
@@ -73,7 +73,7 @@ async function pauseSelected() {
   const firstDay = Math.min(...selectedDays)
   const pauseDate = `${String(firstDay).padStart(2, '0')}-${String(currentMonthIndex + 1).padStart(2, '0')}-${currentYear}`
 
-  const res = await fetch('http://127.0.0.1:5000/api/pause', {
+  const res = await fetch('https://milk-connect-powered-by-milk-assistant.onrender.com/api/pause', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
@@ -96,7 +96,7 @@ async function pauseSelected() {
 
   try {
 
-    await fetch('http://127.0.0.1:5000/api/resume', {
+    await fetch('https://milk-connect-powered-by-milk-assistant.onrender.com/api/resume', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
@@ -122,7 +122,7 @@ async function pauseSelected() {
  async function changeQuantity() {
   if (!quantity || selectedDays.length === 0) return
 
-  const res = await fetch('http://127.0.0.1:5000/api/change-quantity', {
+  const res = await fetch('https://milk-connect-powered-by-milk-assistant.onrender.com/api/change-quantity', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
