@@ -3,6 +3,7 @@ import { ArrowLeft, LockKeyhole, ShieldCheck } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import FloatingBottomNav from '../components/FloatingBottomNav'
 import { showToast } from '../utils/toast'
+import { getCustomerAuth } from '../utils/auth'
 
 const API_BASE = ['localhost', '127.0.0.1'].includes(window.location.hostname)
   ? 'http://127.0.0.1:5000'
@@ -44,11 +45,10 @@ export default function ChangePin() {
       const res = await fetch(`${API_BASE}/api/change-pin`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          mobile,
-          current_pin: currentPin,
-          new_pin: newPin,
-        }),
+        body: JSON.stringify(getCustomerAuth({
+  current_pin: currentPin,
+  new_pin: newPin,
+})),
       })
 
       const data = await res.json()

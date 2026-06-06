@@ -12,6 +12,8 @@ print("3")
 from dotenv import load_dotenv
 print("4")
 
+from itsdangerous import URLSafeTimedSerializer, BadSignature, SignatureExpired
+
 from datetime import datetime, timedelta, date
 print("5")
 
@@ -1383,4 +1385,130 @@ def update_payment_request_status(row_number, status):
     return {
         "success": True,
         "message": f"✅ Payment marked as {status}.",
+    }
+    
+# =====================================================
+# SECURE PAYMENT INFO
+# =====================================================
+
+def get_secure_payment_info(mobile, amount):
+    from urllib.parse import quote
+
+    customer = get_customer_info(mobile)
+
+    if not customer:
+        return {
+            "success": False,
+            "message": "❌ Customer not found.",
+        }
+
+    upi_id = os.getenv("PAYMENT_UPI_ID", "").strip()
+    payee_name = os.getenv("PAYMENT_PAYEE_NAME", "Milk Connect").strip()
+
+    if not upi_id:
+        return {
+            "success": False,
+            "message": "❌ Payment UPI ID is not configured.",
+        }
+
+    try:
+        amount_value = float(str(amount).replace("₹", "").replace(",", "").strip())
+    except Exception:
+        amount_value = 0
+
+    if amount_value <= 0:
+        return {
+            "success": False,
+            "message": "❌ Invalid payment amount.",
+        }
+
+    note = f"Milk bill payment by {customer.get('name', 'Customer')}"
+
+    upi_link = (
+        f"upi://pay?"
+        f"pa={quote(upi_id)}"
+        f"&pn={quote(payee_name)}"
+        f"&am={amount_value}"
+        f"&cu=INR"
+        f"&tn={quote(note)}"
+    )
+
+    return {
+        "success": True,
+        "upi_id": upi_id,
+        "payee_name": payee_name,
+        "amount": format_quantity(amount_value),
+        "upi_link": upi_link,
+        "verify_message": f"Before paying, confirm receiver name: {payee_name}",
+    }
+# =====================================================
+# CUSTOMER SESSION TOKENS
+# =====================================================
+
+def get_session_serializer():
+    secret_key = os.getenv("APP_SECRET_KEY", "").strip()
+
+    if not secret_key:
+        secret_key = "dev-secret-change-before-launch"
+
+    return URLSafeTimedSerializer(
+        secret_key,
+        salt="milk-connect-customer-session"
+    )
+
+
+def create_customer_token(mobile):
+    serializer = get_session_serializer()
+
+    return serializer.dumps({
+        "type": "customer",
+        "mobile": normalize_mobile(mobile),
+    })
+
+
+def verify_customer_token(token, mobile=None):
+    if not token:
+        return {
+            "success": False,
+            "message": "❌ Login session missing. Please login again.",
+        }
+
+    max_age = int(os.getenv("SESSION_TOKEN_MAX_AGE_SECONDS", "2592000"))
+    serializer = get_session_serializer()
+
+    try:
+        data = serializer.loads(token, max_age=max_age)
+    except SignatureExpired:
+        return {
+            "success": False,
+            "message": "❌ Login session expired. Please login again.",
+        }
+    except BadSignature:
+        return {
+            "success": False,
+            "message": "❌ Invalid login session. Please login again.",
+        }
+    except Exception:
+        return {
+            "success": False,
+            "message": "❌ Session verification failed. Please login again.",
+        }
+
+    if data.get("type") != "customer":
+        return {
+            "success": False,
+            "message": "❌ Invalid customer session.",
+        }
+
+    token_mobile = normalize_mobile(data.get("mobile", ""))
+
+    if mobile and token_mobile != normalize_mobile(mobile):
+        return {
+            "success": False,
+            "message": "❌ Session does not match this customer.",
+        }
+
+    return {
+        "success": True,
+        "mobile": token_mobile,
     }

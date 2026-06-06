@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { getCustomerAuth } from '../utils/auth'
 import {
   ArrowLeft,
   Clock,
@@ -35,7 +36,7 @@ export default function History() {
       const paymentRes = await fetch(`${API_BASE}/api/payment-history`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ mobile }),
+        body: JSON.stringify(getCustomerAuth()),
       })
 
       const paymentData = await paymentRes.json()
@@ -44,7 +45,7 @@ export default function History() {
       const actionRes = await fetch(`${API_BASE}/api/action-history`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ mobile }),
+        body: JSON.stringify(getCustomerAuth()),
       })
 
       const actionData = await actionRes.json()

@@ -1,5 +1,6 @@
 import { showToast } from '../utils/toast'
 import { useEffect, useState } from 'react'
+import { getCustomerAuth } from '../utils/auth'
 import {
   ArrowLeft,
   CalendarDays,
@@ -56,7 +57,7 @@ export default function Calendar() {
       const res = await fetch(`${API_BASE}/api/calendar-data`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ mobile }),
+        body: JSON.stringify(getCustomerAuth()),
       })
 
       const data = await res.json()
@@ -105,10 +106,9 @@ export default function Calendar() {
       const res = await fetch(`${API_BASE}/api/pause`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          mobile,
-          dates: formatSelectedDates(),
-        }),
+        body: JSON.stringify(getCustomerAuth({
+  dates: formatSelectedDates(),
+})),
       })
 
       const data = await res.json()
@@ -134,10 +134,9 @@ export default function Calendar() {
       const res = await fetch(`${API_BASE}/api/resume`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          mobile,
-          dates: formatSelectedDates(),
-        }),
+        body: JSON.stringify(getCustomerAuth({
+  dates: formatSelectedDates(),
+})),
       })
 
       const data = await res.json()
@@ -163,11 +162,10 @@ export default function Calendar() {
       const res = await fetch(`${API_BASE}/api/change-quantity`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          mobile,
-          quantity,
-          dates: formatSelectedDates(),
-        }),
+        body: JSON.stringify(getCustomerAuth({
+  quantity,
+  dates: formatSelectedDates(),
+})),
       })
 
       const data = await res.json()

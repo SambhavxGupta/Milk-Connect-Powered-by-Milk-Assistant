@@ -59,7 +59,8 @@ export default function Login() {
       }
 
       const customer = data.customer || data
-
+      
+      localStorage.setItem('authToken', data.auth_token || '')
       localStorage.setItem('customerMobile', customer.mobile || cleanMobile)
       localStorage.setItem('customerName', customer.name || 'Customer')
       localStorage.setItem('litres', `${customer.liter || '1'}L`)

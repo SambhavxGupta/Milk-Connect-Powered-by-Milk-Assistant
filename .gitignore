@@ -1,8 +1,14 @@
 .venv/
 __pycache__/
-service_account.json
-.env
 node_modules/
 dist/
+
+.env
+service_account.json
 logs.txt
 *.log
+
+*.xlsx
+*.csv
+data/
+backups/
