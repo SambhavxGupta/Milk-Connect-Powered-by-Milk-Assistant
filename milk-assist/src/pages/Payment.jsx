@@ -1,10 +1,19 @@
-import { ArrowLeft, CheckCircle, Copy, IndianRupee, QrCode, Wallet } from 'lucide-react'
+import { useState } from 'react'
+import {
+  ArrowLeft,
+  CheckCircle,
+  Copy,
+  IndianRupee,
+  QrCode,
+  Wallet,
+} from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import FloatingBottomNav from '../components/FloatingBottomNav'
 
 const API_BASE = ['localhost', '127.0.0.1'].includes(window.location.hostname)
   ? 'http://127.0.0.1:5000'
   : 'https://milk-connect-powered-by-milk-assistant.onrender.com'
+
 const UPI_ID = 'your-upi-id@bank'
 const PAYEE_NAME = 'Milk Connect'
 
@@ -14,6 +23,9 @@ export default function Payment() {
   const name = localStorage.getItem('customerName') || 'Customer'
   const mobile = localStorage.getItem('customerMobile') || ''
   const remainingBalance = localStorage.getItem('remainingBalance') || '₹0'
+
+  const [loading, setLoading] = useState(false)
+  const [submitted, setSubmitted] = useState(false)
 
   const amount = remainingBalance.replace('₹', '').replace(',', '').trim() || '0'
 
@@ -34,24 +46,43 @@ export default function Payment() {
     }
   }
 
-  async function markPaid() {
-  try {
-    const res = await fetch(`${API_BASE}/api/payment-request`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        mobile,
-        amount,
-        note: `Payment submitted from app by ${name}`,
-      }),
-    })
-
-    const data = await res.json()
-    alert(data.message)
-  } catch (err) {
-    alert('Payment request failed. Please try again.')
+  async function copyPaymentLink() {
+    try {
+      await navigator.clipboard.writeText(upiLink)
+      alert('Payment link copied')
+    } catch {
+      alert('Could not copy payment link')
+    }
   }
-}
+
+  async function markPaid() {
+    if (loading || submitted) return
+
+    setLoading(true)
+
+    try {
+      const res = await fetch(`${API_BASE}/api/payment-request`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          mobile,
+          amount,
+          note: `Payment submitted from app by ${name}`,
+        }),
+      })
+
+      const data = await res.json()
+      alert(data.message)
+
+      if (data.success) {
+        setSubmitted(true)
+      }
+    } catch (err) {
+      alert('Payment request failed. Please try again.')
+    }
+
+    setLoading(false)
+  }
 
   return (
     <div className="min-h-screen bg-[#E9EDF2] flex justify-center items-center px-3 py-4">
@@ -73,23 +104,21 @@ export default function Payment() {
           </div>
 
           <div className="glass-card rounded-[34px] p-5 mb-5">
-            <p className="text-white/45 text-sm mb-2">Amount Due</p>
+            <p className="text-white/45 text-sm mb-2">Balance Due</p>
 
             <div className="flex items-center gap-2">
               <IndianRupee className="text-[#D9FF57]" size={28} />
               <h2 className="text-5xl font-bold text-[#D9FF57]">{amount}</h2>
             </div>
 
-            <p className="text-white/45 text-sm mt-4">
-              Customer: {name}
-            </p>
-
-            <p className="text-white/35 text-xs mt-1">
-              Mobile: {mobile}
-            </p>
+            <p className="text-white/45 text-sm mt-4">Customer: {name}</p>
+            <p className="text-white/35 text-xs mt-1">Mobile: {mobile}</p>
           </div>
 
-          <div className="glass-card rounded-[34px] p-5 mb-5 text-center">
+          <button
+            onClick={copyPaymentLink}
+            className="glass-card rounded-[34px] p-5 mb-5 text-center w-full press"
+          >
             <div className="flex items-center justify-center gap-2 mb-4">
               <QrCode size={20} className="text-[#D9FF57]" />
               <h2 className="text-xl font-bold">Scan QR to Pay</h2>
@@ -104,9 +133,9 @@ export default function Payment() {
             </div>
 
             <p className="text-white/45 text-xs mt-4">
-              Scan this QR using any UPI app.
+              Tap QR to copy payment link.
             </p>
-          </div>
+          </button>
 
           <div className="glass-card rounded-[28px] p-5 mb-5">
             <p className="text-white/45 text-xs mb-2">UPI ID</p>
@@ -133,14 +162,19 @@ export default function Payment() {
 
           <button
             onClick={markPaid}
-            className="w-full bg-white/10 border border-white/10 text-white font-bold p-4 rounded-2xl flex items-center justify-center gap-2 press"
+            disabled={loading || submitted}
+            className="w-full bg-white/10 border border-white/10 text-white font-bold p-4 rounded-2xl flex items-center justify-center gap-2 press disabled:opacity-50"
           >
             <CheckCircle size={18} />
-            I have paid
+            {loading
+              ? 'Submitting...'
+              : submitted
+                ? 'Payment Request Submitted'
+                : 'I have paid'}
           </button>
 
           <p className="text-white/35 text-xs text-center mt-4 leading-relaxed">
-            Payments are verified manually by admin. Your balance will update after confirmation.
+            After payment, tap “I have paid”. Admin will verify the payment from UPI/bank records.
           </p>
         </div>
 
