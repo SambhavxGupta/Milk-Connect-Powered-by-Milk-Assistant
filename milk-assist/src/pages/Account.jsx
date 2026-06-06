@@ -1,3 +1,4 @@
+import InstallAppCard from '../components/InstallAppCard'
 import { LogOut, Phone, User, Wallet, Milk, Home } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import FloatingBottomNav from '../components/FloatingBottomNav'
@@ -36,6 +37,8 @@ export default function Account() {
               <span>{mobile}</span>
             </div>
           </div>
+
+          <InstallAppCard />
 
           <div className="grid grid-cols-2 gap-4 mb-5">
             <div className="glass-card rounded-[28px] p-4">

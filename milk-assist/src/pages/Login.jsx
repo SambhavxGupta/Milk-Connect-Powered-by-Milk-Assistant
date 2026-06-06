@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { ArrowRight, Milk } from 'lucide-react'
+import { ArrowRight } from 'lucide-react'
 import { motion } from 'framer-motion'
 
 const API_BASE = ['localhost', '127.0.0.1'].includes(window.location.hostname)
@@ -87,15 +87,19 @@ export default function Login() {
         >
           <div className="flex-1 flex flex-col items-center justify-center text-center">
             <div className="relative mb-7">
-              <div className="w-24 h-24 rounded-[34px] bg-white/10 border border-white/10 flex items-center justify-center shadow-2xl">
-                <Milk size={54} className="text-white" strokeWidth={1.3} />
-              </div>
+  <div className="w-28 h-28 rounded-[36px] bg-white p-2 flex items-center justify-center shadow-2xl overflow-hidden">
+    <img
+      src="/icons/milkconnect-logo.png"
+      alt="Milk Connect"
+      className="w-full h-full object-contain"
+    />
+  </div>
 
-              <div className="absolute -right-1 top-4 w-4 h-4 bg-[#D9FF57] rounded-full blur-[2px]" />
-            </div>
+  <div className="absolute -right-1 top-4 w-4 h-4 bg-[#D9FF57] rounded-full blur-[2px]" />
+</div>
 
             <h1 className="text-4xl font-semibold tracking-wide">
-              Milk <span className="text-[#D9FF57]">Assist</span>
+              Milk <span className="text-[#D9FF57]">Connect</span>
             </h1>
 
             <p className="text-white/60 text-[15px] leading-relaxed mt-4">
