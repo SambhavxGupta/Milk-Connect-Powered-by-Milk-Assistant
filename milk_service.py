@@ -640,8 +640,38 @@ def get_payment_sheet():
     if headers != PAYMENT_HEADERS:
         payment_sheet.update("A1:F1", [PAYMENT_HEADERS])
 
+    apply_payment_status_dropdown(payment_sheet)
+
     return payment_sheet
 
+def apply_payment_status_dropdown(payment_sheet):
+    spreadsheet.batch_update({
+        "requests": [
+            {
+                "setDataValidation": {
+                    "range": {
+                        "sheetId": payment_sheet.id,
+                        "startRowIndex": 1,
+                        "endRowIndex": 1000,
+                        "startColumnIndex": 4,
+                        "endColumnIndex": 5,
+                    },
+                    "rule": {
+                        "condition": {
+                            "type": "ONE_OF_LIST",
+                            "values": [
+                                {"userEnteredValue": "Pending"},
+                                {"userEnteredValue": "Verified"},
+                                {"userEnteredValue": "Rejected"},
+                            ],
+                        },
+                        "strict": True,
+                        "showCustomUi": True,
+                    },
+                }
+            }
+        ]
+    })
 
 def submit_payment_request(mobile, amount, note=""):
     customer = get_customer_info(mobile)
