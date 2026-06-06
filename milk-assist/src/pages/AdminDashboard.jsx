@@ -62,6 +62,32 @@ export default function AdminDashboard() {
     loadDashboard()
   }, [])
 
+async function updatePaymentStatus(row, status) {
+  if (!adminPin) return
+
+  try {
+    const res = await fetch(`${API_BASE}/api/admin-payment-status`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        pin: adminPin,
+        row,
+        status,
+      }),
+    })
+
+    const data = await res.json()
+
+    showToast(data.message, data.success ? 'success' : 'warning')
+
+    if (data.success) {
+      await loadDashboard()
+    }
+  } catch (err) {
+    showToast('Payment status update failed', 'error')
+  }
+}
+
   function logoutAdmin() {
     localStorage.removeItem('adminPin')
     navigate('/admin-login')
@@ -233,6 +259,23 @@ export default function AdminDashboard() {
                           </div>
                         </div>
 
+                            <div className="grid grid-cols-2 gap-2 mt-3">
+                            <button
+                                onClick={() => updatePaymentStatus(payment.row, 'Verified')}
+                                className="rounded-xl bg-[#D9FF57] text-[#1F2430] py-2 text-xs font-bold press"
+                            >
+                                Verify
+                            </button>
+
+                            <button
+                                onClick={() => updatePaymentStatus(payment.row, 'Rejected')}
+                                className="rounded-xl bg-red-400/15 border border-red-300/30 text-red-200 py-2 text-xs font-bold press"
+                            >
+                                Reject
+                            </button>
+                            </div>
+
+                            
                         <p className="text-white/35 text-xs mt-3">
                           {payment.timestamp}
                         </p>

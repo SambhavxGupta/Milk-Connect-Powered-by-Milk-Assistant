@@ -1316,3 +1316,70 @@ def get_admin_dashboard_data():
         "tomorrow_delivery": tomorrow_delivery,
         "pending_payments": pending_payments,
     }
+    
+# =====================================================
+# ADMIN PAYMENT VERIFICATION
+# =====================================================
+
+def update_payment_request_status(row_number, status):
+    allowed_statuses = ["Pending", "Verified", "Rejected"]
+
+    if status not in allowed_statuses:
+        return {
+            "success": False,
+            "message": "❌ Invalid payment status.",
+        }
+
+    try:
+        row_number = int(row_number)
+    except Exception:
+        return {
+            "success": False,
+            "message": "❌ Invalid payment row.",
+        }
+
+    if row_number < 2:
+        return {
+            "success": False,
+            "message": "❌ Invalid payment row.",
+        }
+
+    payment_sheet = get_payment_sheet()
+    headers = payment_sheet.row_values(1)
+    row = payment_sheet.row_values(row_number)
+
+    status_col = find_column(headers, ["status"])
+    mobile_col = find_column(headers, ["mobile"])
+    amount_col = find_column(headers, ["amount"])
+
+    if status_col is None:
+        return {
+            "success": False,
+            "message": "❌ Status column not found.",
+        }
+
+    mobile = (
+        row[mobile_col].strip()
+        if mobile_col is not None and len(row) > mobile_col
+        else ""
+    )
+
+    amount = (
+        row[amount_col].strip()
+        if amount_col is not None and len(row) > amount_col
+        else ""
+    )
+
+    payment_sheet.update_cell(row_number, status_col + 1, status)
+
+    if mobile:
+        write_log(
+            normalize_mobile(mobile),
+            "PAYMENT_STATUS",
+            f"Payment request ₹{amount} marked as {status}"
+        )
+
+    return {
+        "success": True,
+        "message": f"✅ Payment marked as {status}.",
+    }

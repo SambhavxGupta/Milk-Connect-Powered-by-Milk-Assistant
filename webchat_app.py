@@ -16,6 +16,7 @@ from milk_service import (
     change_customer_pin,
     verify_admin_pin,
     get_admin_dashboard_data,
+    update_payment_request_status,
 )
 
 
@@ -239,6 +240,27 @@ def api_resume():
     result = handle_resume(mobile, dates=dates)
 
     return jsonify({"result": result})
+
+@app.route("/api/admin-payment-status", methods=["POST"])
+def api_admin_payment_status():
+    data = request.json or {}
+
+    pin = data.get("pin")
+    row = data.get("row")
+    status = data.get("status")
+
+    if not verify_admin_pin(pin):
+        return jsonify({
+            "success": False,
+            "message": "❌ Unauthorized admin access.",
+        })
+
+    result = update_payment_request_status(
+        row_number=row,
+        status=status,
+    )
+
+    return jsonify(result)
 
 
 @app.route("/api/change-quantity", methods=["POST"])
