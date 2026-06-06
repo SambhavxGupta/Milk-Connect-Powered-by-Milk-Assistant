@@ -229,358 +229,378 @@ def find_customer_row(mobile):
 # =====================================================
 
 
-def parse_header_date(header):
-
+def format_quantity(qty):
     try:
+        number = float(str(qty).replace("L", "").replace("l", "").strip())
+        if number.is_integer():
+            return str(int(number))
+        return str(number).rstrip("0").rstrip(".")
+    except Exception:
+        return str(qty).strip().replace("L", "").replace("l", "")
 
-        current_year = datetime.now().year
 
-        return datetime.strptime(
-            f"{header.strip()}-{current_year}",
-            "%d-%b-%Y"
-        ).date()
-
-    except:
-
+def parse_header_date(header):
+    text = str(header).strip()
+    if not text:
         return None
 
-# =====================================================
-# GET DATE COLUMNS
-# =====================================================
+    current_year = datetime.now().year
+    possible_formats = ["%d-%b-%Y", "%d-%B-%Y", "%d/%m/%Y", "%d-%m-%Y", "%Y-%m-%d"]
+    values_to_try = [text]
+
+    if text.count("-") == 1:
+        values_to_try.append(f"{text}-{current_year}")
+
+    for value in values_to_try:
+        for fmt in possible_formats:
+            try:
+                return datetime.strptime(value, fmt).date()
+            except Exception:
+                pass
+
+    return None
+
+
+def parse_user_date(value):
+    if isinstance(value, date):
+        return value
+
+    text = str(value).strip()
+    possible_formats = ["%d-%m-%Y", "%Y-%m-%d", "%d/%m/%Y", "%d-%b-%Y", "%d-%B-%Y"]
+
+    for fmt in possible_formats:
+        try:
+            return datetime.strptime(text, fmt).date()
+        except Exception:
+            pass
+
+    return None
+
+
+def build_date_range(start_date_str, days):
+    start_date = parse_user_date(start_date_str)
+    if not start_date:
+        return None, "❌ Invalid date format. Use DD-MM-YYYY"
+
+    try:
+        days = int(days)
+    except Exception:
+        return None, "❌ Invalid number of days."
+
+    if days <= 0:
+        return None, "❌ Days must be greater than 0."
+
+    if days > 30:
+        return None, "❌ Maximum limit is 30 days."
+
+    return [start_date + timedelta(days=i) for i in range(days)], None
+
+
+def parse_selected_dates(dates=None, start_date_str=None, days=None):
+    if dates:
+        parsed_dates = []
+
+        for item in dates:
+            parsed = parse_user_date(item)
+            if parsed:
+                parsed_dates.append(parsed)
+
+        parsed_dates = sorted(set(parsed_dates))
+
+        if not parsed_dates:
+            return None, "❌ No valid dates selected."
+
+        if len(parsed_dates) > 30:
+            return None, "❌ Maximum limit is 30 selected dates."
+
+        return parsed_dates, None
+
+    return build_date_range(start_date_str, days)
 
 
 def get_date_columns():
-
     headers = sheet.row_values(1)
-
     date_columns = {}
 
     for idx, header in enumerate(headers, start=1):
-
         parsed_date = parse_header_date(header)
-
         if parsed_date:
             date_columns[parsed_date] = idx
 
     return date_columns
 
-# =====================================================
-# SHOW DELIVERY CALENDAR
-# =====================================================
+
+def set_pause_style(cell):
+    sheet.format(cell, {
+        "backgroundColor": {"red": 1, "green": 0.8, "blue": 0.8},
+        "textFormat": {
+            "foregroundColor": {"red": 0.6, "green": 0, "blue": 0},
+            "bold": True,
+        },
+    })
+
+
+def set_quantity_style(cell):
+    sheet.format(cell, {
+        "backgroundColor": {"red": 0.82, "green": 0.9, "blue": 1},
+        "textFormat": {
+            "foregroundColor": {"red": 0, "green": 0.15, "blue": 0.55},
+            "bold": True,
+        },
+    })
+
+
+def reset_cell_style(cell):
+    sheet.format(cell, {
+        "backgroundColor": {"red": 1, "green": 1, "blue": 1},
+        "textFormat": {
+            "foregroundColor": {"red": 0, "green": 0, "blue": 0},
+            "bold": False,
+        },
+    })
 
 
 def show_delivery_calendar(mobile):
-
     row = find_customer_row(mobile)
-
     if not row:
         return "❌ Customer not found."
 
     headers = sheet.row_values(1)
-
     values = sheet.row_values(row)
-
-    output = []
-
-    output.append(
-        f"📅 Delivery Calendar ({date.today().strftime('%B %Y')})"
-    )
-
-    output.append("")
-
+    output = [f"📅 Delivery Calendar ({date.today().strftime('%B %Y')})", ""]
     date_row = []
     value_row = []
 
     for idx, header in enumerate(headers):
-
         parsed = parse_header_date(header)
-
         if parsed:
-
-            date_row.append(
-                parsed.strftime("%d")
-            )
-
+            date_row.append(parsed.strftime("%d"))
             if idx < len(values):
-
-                value = values[idx]
-
-                if value == "":
-                    value = "-"
-
-                value_row.append(str(value))
+                value_row.append(str(values[idx] or "-"))
 
     output.append(" ".join(date_row))
     output.append(" ".join(value_row))
-
     return "\n".join(output)
 
-# =====================================================
-# HANDLE PAUSE
-# =====================================================
 
-def handle_pause(
-    mobile,
-    start_date_str,
-    pause_days
-):
-
+def handle_pause(mobile, start_date_str=None, pause_days=None, dates=None):
     customer = get_customer_info(mobile)
-
     if not customer:
         return "❌ Customer not found."
 
+    selected_dates, error = parse_selected_dates(
+        dates=dates,
+        start_date_str=start_date_str,
+        days=pause_days,
+    )
+    if error:
+        return error
+
+    today = date.today()
+
+    if any(selected_date <= today for selected_date in selected_dates):
+        return "❌ Cannot edit today's or past delivery. Please choose tomorrow or later."
+
     row = customer["row"]
-
-    try:
-
-        start_date = datetime.strptime(
-            start_date_str,
-            "%d-%m-%Y"
-        ).date()
-
-    except:
-
-        return "❌ Invalid date format. Use DD-MM-YYYY"
-
-    if start_date < date.today():
-        return "❌ Cannot pause past dates."
-
-    try:
-
-        pause_days = int(pause_days)
-
-    except:
-
-        return "❌ Invalid number of days."
-
-    if pause_days <= 0:
-        return "❌ Pause days must be greater than 0."
-
-    if pause_days > 30:
-        return "❌ Maximum pause limit is 30 days."
-
     date_columns = get_date_columns()
+    updated_dates = []
 
-    updated = False
+    for selected_date in selected_dates:
+        col = date_columns.get(selected_date)
+        if not col:
+            continue
 
-    for i in range(pause_days):
+        cell = gspread.utils.rowcol_to_a1(row, col)
+        sheet.update_acell(cell, "Ab")
+        set_pause_style(cell)
+        updated_dates.append(selected_date.strftime("%d-%m-%Y"))
 
-        current_date = start_date + timedelta(days=i)
+    if updated_dates:
+        write_log(mobile, "PAUSE", ", ".join(updated_dates))
+        return f"✅ Paused {len(updated_dates)} selected date(s)."
 
-        if current_date in date_columns:
+    return "❌ No matching dates found in sheet."
 
-            col = date_columns[current_date]
 
-            cell = gspread.utils.rowcol_to_a1(
-                row,
-                col
-            )
-
-            sheet.update_acell(
-                cell,
-                "Ab"
-            )
-
-            sheet.format(cell, {
-                "backgroundColor": {
-                    "red": 1,
-                    "green": 0.8,
-                    "blue": 0.8
-                },
-                "textFormat": {
-                    "foregroundColor": {
-                        "red": 0.6,
-                        "green": 0,
-                        "blue": 0
-                    },
-                    "bold": True
-                }
-            })
-
-            updated = True
-
-    if updated:
-
-        write_log(
-            mobile,
-            "PAUSE",
-            f"{pause_days} days from {start_date}"
-        )
-
-        return "✅ Pause successfully applied."
-
-    return "❌ No matching dates found."
-
-# =====================================================
-# HANDLE RESUME
-# =====================================================
-
-def handle_resume(mobile):
-
+def handle_resume(mobile, dates=None):
     customer = get_customer_info(mobile)
-
     if not customer:
         return "❌ Customer not found."
 
     row = customer["row"]
-
-    default_quantity = customer["liter"]
-
+    default_quantity = format_quantity(customer["liter"])
     values = sheet.row_values(row)
+    updated_dates = []
 
-    updated = False
+    if dates:
+        selected_dates, error = parse_selected_dates(dates=dates)
+        if error:
+            return error
 
-    for idx, value in enumerate(values, start=1):
+        today = date.today()
 
-        if str(value).strip().lower() == "ab":
+        if any(selected_date <= today for selected_date in selected_dates):
+            return "❌ Cannot edit today's or past delivery. Please choose tomorrow or later."
 
-            cell = gspread.utils.rowcol_to_a1(
-                row,
-                idx
-            )
+        date_columns = get_date_columns()
 
-            sheet.update_acell(
-                cell,
-                str(default_quantity)
-            )
+        for selected_date in selected_dates:
+            col = date_columns.get(selected_date)
+            if not col:
+                continue
 
-            sheet.format(cell, {
-                "backgroundColor": {
-                    "red": 1,
-                    "green": 1,
-                    "blue": 1
-                },
-                "textFormat": {
-                    "foregroundColor": {
-                        "red": 0,
-                        "green": 0,
-                        "blue": 0
-                    },
-                    "bold": False
-                }
-            })
+            cell = gspread.utils.rowcol_to_a1(row, col)
+            sheet.update_acell(cell, default_quantity)
+            reset_cell_style(cell)
+            updated_dates.append(selected_date.strftime("%d-%m-%Y"))
 
-            updated = True
+    else:
+        for idx, value in enumerate(values, start=1):
+            if str(value).strip().lower() == "ab":
+                cell = gspread.utils.rowcol_to_a1(row, idx)
+                sheet.update_acell(cell, default_quantity)
+                reset_cell_style(cell)
+                updated_dates.append(cell)
 
-    if updated:
-
-        write_log(
-            mobile,
-            "RESUME",
-            "SUCCESS"
-        )
-
-        return "✅ Milk resumed successfully."
+    if updated_dates:
+        write_log(mobile, "RESUME", ", ".join(updated_dates))
+        return f"✅ Resumed {len(updated_dates)} selected date(s)."
 
     return "✅ No paused entries found."
-# =====================================================
-# GET CUSTOMER CALENDAR DATA
-# =====================================================
+
 
 def get_customer_calendar(mobile):
-
     customer = get_customer_info(mobile)
-
     if not customer:
         return {
-            "paused_days": []
+            "paused_days": [],
+            "quantity_days": {},
+            "dates": {},
+            "total_milk": "0",
+            "remaining_milk": "0",
         }
 
     row = customer["row"]
-
+    default_quantity = format_quantity(customer["liter"])
     headers = sheet.row_values(1)
     values = sheet.row_values(row)
 
     paused_days = []
+    quantity_days = {}
+    dates_data = {}
+    total_milk = 0.0
+    remaining_milk = 0.0
+    current_month = date.today().month
+    current_year = date.today().year
+    today = date.today()
 
     for idx, header in enumerate(headers):
-
         parsed = parse_header_date(header)
-
         if not parsed:
             continue
 
-        if idx >= len(values):
-            continue
+        value = str(values[idx]).strip() if idx < len(values) else ""
+        if not value:
+            value = default_quantity
 
-        value = str(values[idx]).strip()
+        date_key = parsed.strftime("%d-%m-%Y")
+        day = parsed.day
+        status = "default"
+        quantity = default_quantity
 
         if value.lower() == "ab":
-            paused_days.append(parsed.day)
+            status = "paused"
+            quantity = "0"
+            paused_days.append(day)
+        else:
+            quantity = format_quantity(value)
+
+            if quantity != default_quantity:
+                status = "changed"
+                quantity_days[str(day)] = quantity
+
+            if parsed.month == current_month and parsed.year == current_year:
+                try:
+                    total_milk += float(quantity)
+
+                    if parsed > today:
+                        remaining_milk += float(quantity)
+                except Exception:
+                    pass
+
+        dates_data[date_key] = {
+            "day": day,
+            "date": date_key,
+            "value": value,
+            "status": status,
+            "quantity": quantity,
+        }
 
     return {
-        "paused_days": paused_days
+        "paused_days": paused_days,
+        "quantity_days": quantity_days,
+        "dates": dates_data,
+        "total_milk": format_quantity(total_milk),
+        "remaining_milk": format_quantity(remaining_milk),
+        "default_quantity": default_quantity,
+        "remaining_balance": customer.get("remaining_balance", "0"),
     }
-    
-    
-# =====================================================
-# HANDLE MODIFY QUANTITY
-# =====================================================
 
 
-def handle_modify_quantity(
-    mobile,
-    qty
-):
-
+def handle_modify_quantity(mobile, qty, dates=None):
     customer = get_customer_info(mobile)
-
     if not customer:
         return "❌ Customer not found."
 
-    row = customer["row"]
-
     try:
-
         qty = float(qty)
-
-    except:
-
+    except Exception:
         return "❌ Invalid quantity."
 
     if qty <= 0:
         return "❌ Quantity must be greater than 0."
 
+    qty_text = format_quantity(qty)
+    row = customer["row"]
     date_columns = get_date_columns()
-
-    updated = False
-
+    values = sheet.row_values(row)
     today = date.today()
 
-    for current_date, col in date_columns.items():
+    if dates:
+        selected_dates, error = parse_selected_dates(dates=dates)
+        if error:
+            return error
+    else:
+        selected_dates = sorted([d for d in date_columns.keys() if d > today])
 
-        if current_date < today:
+    if any(selected_date <= today for selected_date in selected_dates):
+        return "❌ Cannot edit today's or past delivery. Please choose tomorrow or later."
+
+    updated_dates = []
+    skipped_paused = 0
+
+    for selected_date in selected_dates:
+        col = date_columns.get(selected_date)
+        if not col:
             continue
 
-        cell = gspread.utils.rowcol_to_a1(
-            row,
-            col
-        )
-
-        current_value = sheet.acell(cell).value
-
-        if current_value == "Ab":
+        current_value = values[col - 1] if len(values) >= col else ""
+        if str(current_value).strip().lower() == "ab":
+            skipped_paused += 1
             continue
 
-        if current_value is None:
-            continue
+        cell = gspread.utils.rowcol_to_a1(row, col)
+        sheet.update_acell(cell, qty_text)
+        set_quantity_style(cell)
+        updated_dates.append(selected_date.strftime("%d-%m-%Y"))
 
-        sheet.update_acell(
-            cell,
-            str(qty)
-        )
+    if updated_dates:
+        write_log(mobile, "CHANGE_QTY", f"{qty_text}L on {', '.join(updated_dates)}")
+        if skipped_paused:
+            return f"✅ Quantity changed on {len(updated_dates)} date(s). {skipped_paused} paused date(s) skipped."
+        return f"✅ Quantity changed to {qty_text}L on {len(updated_dates)} date(s)."
 
-        updated = True
+    if skipped_paused:
+        return "❌ Selected date(s) are paused. Resume first, then change quantity."
 
-    if updated:
-    
-        write_log(
-            mobile,
-            "CHANGE_QTY",
-            f"{qty}L"
-        )
-
-        return f"✅ Quantity updated to {qty}L"
-
-    return "❌ Quantity update failed."
+    return "❌ Quantity update failed. No matching dates found."

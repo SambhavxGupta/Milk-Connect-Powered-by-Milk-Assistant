@@ -182,54 +182,48 @@ def api_login():
 
 @app.route("/api/pause", methods=["POST"])
 def api_pause():
-
     data = request.json or {}
 
     mobile = data.get("mobile")
-    start_date = data.get("start_date")
-    days = data.get("days")
+    dates = data.get("dates")
 
     result = handle_pause(
         mobile,
-        start_date,
-        days
+        start_date_str=data.get("start_date"),
+        pause_days=data.get("days"),
+        dates=dates,
     )
 
-    return jsonify({
-        "result": result
-    })
+    return jsonify({"result": result})
 
 
 @app.route("/api/resume", methods=["POST"])
 def api_resume():
-
     data = request.json or {}
 
     mobile = data.get("mobile")
+    dates = data.get("dates")
 
-    result = handle_resume(mobile)
+    result = handle_resume(mobile, dates=dates)
 
-    return jsonify({
-        "result": result
-    })
+    return jsonify({"result": result})
 
 
 @app.route("/api/change-quantity", methods=["POST"])
 def api_change_quantity():
-
     data = request.json or {}
 
     mobile = data.get("mobile")
     quantity = data.get("quantity")
+    dates = data.get("dates")
 
     result = handle_modify_quantity(
         mobile,
-        quantity
+        quantity,
+        dates=dates,
     )
 
-    return jsonify({
-        "result": result
-    })
+    return jsonify({"result": result})
 @app.route("/api/calendar-data", methods=["POST"])
 def api_calendar_data():
     data = request.json or {}

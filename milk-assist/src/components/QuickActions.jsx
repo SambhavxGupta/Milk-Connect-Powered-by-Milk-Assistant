@@ -1,22 +1,85 @@
-import { useContext } from 'react'
+import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Pause, Play, FileText, Repeat } from 'lucide-react'
-import { AppContext } from '../context/AppContext'
+
+const API_BASE = ['localhost', '127.0.0.1'].includes(window.location.hostname)
+  ? 'http://127.0.0.1:5000'
+  : 'https://milk-connect-powered-by-milk-assistant.onrender.com'
 
 export default function QuickActions() {
   const navigate = useNavigate()
-  const { deliveryStatus, setDeliveryStatus } = useContext(AppContext)
+  const mobile = localStorage.getItem('customerMobile')
 
-  const isPaused = deliveryStatus === 'Paused'
+  const [isPaused, setIsPaused] = useState(false)
+  const [loading, setLoading] = useState(false)
 
-  function toggleTomorrowDelivery() {
-    setDeliveryStatus(isPaused ? 'Delivered' : 'Paused')
+  const tomorrow = new Date()
+  tomorrow.setDate(tomorrow.getDate() + 1)
+
+  const tomorrowDay = tomorrow.getDate()
+  const tomorrowDate = `${String(tomorrow.getDate()).padStart(2, '0')}-${String(
+    tomorrow.getMonth() + 1
+  ).padStart(2, '0')}-${tomorrow.getFullYear()}`
+
+  async function loadTomorrowStatus() {
+    if (!mobile) return
+
+    try {
+      const res = await fetch(`${API_BASE}/api/calendar-data`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ mobile }),
+      })
+
+      const data = await res.json()
+      setIsPaused((data.paused_days || []).includes(tomorrowDay))
+    } catch (err) {
+      console.log('Tomorrow status load failed', err)
+    }
+  }
+
+  useEffect(() => {
+    loadTomorrowStatus()
+  }, [mobile])
+
+  async function toggleTomorrowDelivery() {
+    if (!mobile || loading) return
+
+    setLoading(true)
+
+    const endpoint = isPaused ? 'resume' : 'pause'
+
+    try {
+      const res = await fetch(`${API_BASE}/api/${endpoint}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          mobile,
+          dates: [tomorrowDate],
+        }),
+      })
+
+      const data = await res.json()
+      alert(data.result)
+
+      if (data.result.includes('✅')) {
+        setIsPaused(!isPaused)
+      }
+    } catch (err) {
+      alert('Action failed')
+    }
+
+    setLoading(false)
   }
 
   const actions = [
     {
-      label: isPaused ? 'Resume Tomorrow' : 'Pause Tomorrow',
-      icon: isPaused ? <Play size={22} className="text-[#D9FF57]" /> : <Pause size={22} className="text-[#D9FF57]" />,
+      label: loading ? 'Please wait...' : isPaused ? 'Resume Tomorrow' : 'Pause Tomorrow',
+      icon: isPaused ? (
+        <Play size={22} className="text-[#D9FF57]" />
+      ) : (
+        <Pause size={22} className="text-[#D9FF57]" />
+      ),
       onClick: toggleTomorrowDelivery,
       hasDot: true,
     },
@@ -41,7 +104,8 @@ export default function QuickActions() {
           <div key={idx} className="flex flex-col items-center gap-2 w-[92px]">
             <button
               onClick={action.onClick}
-              className="relative w-14 h-14 rounded-full bg-white/8 border border-white/10 flex items-center justify-center shadow-sm press"
+              disabled={loading && idx === 0}
+              className="relative w-14 h-14 rounded-full bg-white/8 border border-white/10 flex items-center justify-center shadow-sm press disabled:opacity-50"
             >
               {action.icon}
 

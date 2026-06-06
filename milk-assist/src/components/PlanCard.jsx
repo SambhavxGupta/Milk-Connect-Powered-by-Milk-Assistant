@@ -1,10 +1,8 @@
 import { ChevronRight, Gift, Milk, Wallet } from 'lucide-react'
-import { useContext } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { AppContext } from '../context/AppContext'
 
 export default function PlanCard() {
-  const { milkQuantity } = useContext(AppContext)
+  const milkQuantity = localStorage.getItem('litres') || '1L'
   const navigate = useNavigate()
 
   return (

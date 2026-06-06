@@ -10,11 +10,15 @@ import {
 import { useNavigate } from 'react-router-dom'
 import FloatingBottomNav from '../components/FloatingBottomNav'
 
+const API_BASE = ['localhost', '127.0.0.1'].includes(window.location.hostname)
+  ? 'http://127.0.0.1:5000'
+  : 'https://milk-connect-powered-by-milk-assistant.onrender.com'
+
 export default function Calendar() {
   const navigate = useNavigate()
   const mobile = localStorage.getItem('customerMobile')
-  const defaultQuantity =
-  (localStorage.getItem('litres') || '1L').replace('L', '')
+  const defaultQuantity = (localStorage.getItem('litres') || '1L').replace('L', '')
+
   const today = new Date()
   const currentDay = today.getDate()
   const currentMonthIndex = today.getMonth()
@@ -25,32 +29,52 @@ export default function Calendar() {
   const days = Array.from({ length: daysInMonth }, (_, i) => i + 1)
 
   const [selectedDays, setSelectedDays] = useState([])
- const [pausedDays, setPausedDays] = useState([])
+  const [pausedDays, setPausedDays] = useState([])
   const [quantityDays, setQuantityDays] = useState({})
   const [quantity, setQuantity] = useState('')
+  const [totalMilk, setTotalMilk] = useState('0')
+  const [remainingMilk, setRemainingMilk] = useState('0')
+  const [loading, setLoading] = useState(false)
   const [popup, setPopup] = useState(false)
 
-useEffect(() => {
+  function formatSelectedDates() {
+    return [...selectedDays]
+      .sort((a, b) => a - b)
+      .map((day) => {
+        const dd = String(day).padStart(2, '0')
+        const mm = String(currentMonthIndex + 1).padStart(2, '0')
+        return `${dd}-${mm}-${currentYear}`
+      })
+  }
+
   async function loadCalendarData() {
     if (!mobile) return
 
     try {
-      const res = await fetch('https://milk-connect-powered-by-milk-assistant.onrender.com/api/calendar-data', {
+      const res = await fetch(`${API_BASE}/api/calendar-data`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ mobile })
+        body: JSON.stringify({ mobile }),
       })
 
       const data = await res.json()
 
       setPausedDays(data.paused_days || [])
+      setQuantityDays(data.quantity_days || {})
+      setTotalMilk(data.total_milk || '0')
+      setRemainingMilk(data.remaining_milk || '0')
+
+      if (data.remaining_balance !== undefined) {
+        localStorage.setItem('remainingBalance', `₹${data.remaining_balance || 0}`)
+      }
     } catch (err) {
       console.log('Calendar data load failed', err)
     }
   }
 
-  loadCalendarData()
-}, [mobile])
+  useEffect(() => {
+    loadCalendarData()
+  }, [mobile])
 
   function showPastPopup() {
     setPopup(true)
@@ -58,7 +82,10 @@ useEffect(() => {
   }
 
   function toggleDay(day) {
-    if (day < currentDay) return
+    if (day <= currentDay) {
+      showPastPopup()
+      return
+    }
 
     setSelectedDays((prev) =>
       prev.includes(day)
@@ -67,85 +94,94 @@ useEffect(() => {
     )
   }
 
-async function pauseSelected() {
-  if (selectedDays.length === 0) return
+  async function pauseSelected() {
+    if (selectedDays.length === 0 || loading) return
 
-  const firstDay = Math.min(...selectedDays)
-  const pauseDate = `${String(firstDay).padStart(2, '0')}-${String(currentMonthIndex + 1).padStart(2, '0')}-${currentYear}`
+    setLoading(true)
 
-  const res = await fetch('https://milk-connect-powered-by-milk-assistant.onrender.com/api/pause', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      mobile,
-      start_date: pauseDate,
-      days: selectedDays.length
-    })
-  })
+    try {
+      const res = await fetch(`${API_BASE}/api/pause`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          mobile,
+          dates: formatSelectedDates(),
+        }),
+      })
 
-  const data = await res.json()
-  alert(data.result)
+      const data = await res.json()
+      alert(data.result)
 
-  if (data.result.includes('✅')) {
-    setPausedDays((prev) => [...new Set([...prev, ...selectedDays])])
-    setSelectedDays([])
+      if (data.result.includes('✅')) {
+        setSelectedDays([])
+        await loadCalendarData()
+      }
+    } catch (err) {
+      alert('Pause failed')
+    }
+
+    setLoading(false)
   }
-}
 
   async function resumeSelected() {
+    if (selectedDays.length === 0 || loading) return
 
-  try {
+    setLoading(true)
 
-    await fetch('https://milk-connect-powered-by-milk-assistant.onrender.com/api/resume', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        mobile
+    try {
+      const res = await fetch(`${API_BASE}/api/resume`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          mobile,
+          dates: formatSelectedDates(),
+        }),
       })
-    })
 
-    setPausedDays((prev) =>
-      prev.filter((day) => !selectedDays.includes(day))
-    )
+      const data = await res.json()
+      alert(data.result)
 
-    setSelectedDays([])
+      if (data.result.includes('✅')) {
+        setSelectedDays([])
+        await loadCalendarData()
+      }
+    } catch (err) {
+      alert('Resume failed')
+    }
 
-    alert('Milk resumed successfully')
-
-  } catch (err) {
-    alert('Resume failed')
+    setLoading(false)
   }
-}
 
- async function changeQuantity() {
-  if (!quantity || selectedDays.length === 0) return
+  async function changeQuantity() {
+    if (!quantity || selectedDays.length === 0 || loading) return
 
-  const res = await fetch('https://milk-connect-powered-by-milk-assistant.onrender.com/api/change-quantity', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      mobile,
-      quantity
-    })
-  })
+    setLoading(true)
 
-  const data = await res.json()
-  alert(data.result)
+    try {
+      const res = await fetch(`${API_BASE}/api/change-quantity`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          mobile,
+          quantity,
+          dates: formatSelectedDates(),
+        }),
+      })
 
-  if (data.result.includes('✅')) {
-    const updated = { ...quantityDays }
+      const data = await res.json()
+      alert(data.result)
 
-    selectedDays.forEach((day) => {
-      updated[day] = quantity
-    })
+      if (data.result.includes('✅')) {
+        setQuantity('')
+        setSelectedDays([])
+        await loadCalendarData()
+      }
+    } catch (err) {
+      alert('Quantity change failed')
+    }
 
-    setQuantityDays(updated)
-    setQuantity('')
-    setSelectedDays([])
+    setLoading(false)
   }
-}
 
   const selectedHasPaused = selectedDays.some((day) => pausedDays.includes(day))
   const selectedHasActive = selectedDays.some((day) => !pausedDays.includes(day))
@@ -153,7 +189,6 @@ async function pauseSelected() {
   return (
     <div className="min-h-screen bg-[#E9EDF2] flex justify-center items-center px-3 py-4">
       <div className="phone-shell">
-
         {popup && (
           <div className="absolute top-8 left-1/2 -translate-x-1/2 z-[100] bg-[#D9FF57] text-[#1F2430] px-5 py-3 rounded-2xl text-sm font-semibold shadow-2xl">
             Past Data not Available
@@ -161,7 +196,6 @@ async function pauseSelected() {
         )}
 
         <div className="h-full overflow-y-auto px-5 pt-8 pb-32 custom-scrollbar">
-
           <div className="flex items-center justify-between mb-7">
             <div className="flex items-center gap-3">
               <button
@@ -217,11 +251,11 @@ async function pauseSelected() {
             <div className="grid grid-cols-7 gap-y-5">
               {days.map((day) => {
                 const dayQuantity = quantityDays[day] || defaultQuantity
-                const isPast = day < currentDay
+                const isPast = day <= currentDay
                 const isToday = day === currentDay
                 const isPaused = pausedDays.includes(day)
                 const isSelected = selectedDays.includes(day)
-                
+                const isQuantityChanged = Boolean(quantityDays[day])
 
                 let circleClass = ''
 
@@ -230,7 +264,9 @@ async function pauseSelected() {
                 } else if (isSelected) {
                   circleClass = 'bg-[#D9FF57] text-[#1F2430] border-[#D9FF57] shadow-[0_0_24px_rgba(217,255,87,0.55)]'
                 } else if (isPaused) {
-                  circleClass = 'bg-white/10 border-white/15 text-white/60'
+                  circleClass = 'bg-red-400/20 border-red-300/40 text-red-100'
+                } else if (isQuantityChanged) {
+                  circleClass = 'bg-blue-400/20 border-blue-300/45 text-blue-100'
                 } else if (isToday) {
                   circleClass = 'bg-[#D9FF57]/15 border-[#D9FF57] text-[#D9FF57] shadow-[0_0_20px_rgba(217,255,87,0.35)]'
                 } else {
@@ -240,7 +276,6 @@ async function pauseSelected() {
                 return (
                   <button
                     key={day}
-                    disabled={isPast}
                     onClick={() => toggleDay(day)}
                     className={`flex flex-col items-center press ${
                       isPast ? 'cursor-not-allowed' : ''
@@ -253,7 +288,7 @@ async function pauseSelected() {
                     </div>
 
                     <p className={`text-[11px] mt-1 ${isPast ? 'text-white/20' : 'text-white/55'}`}>
-                      {dayQuantity}L
+                      {isPaused ? 'Ab' : `${dayQuantity}L`}
                     </p>
                   </button>
                 )
@@ -268,13 +303,13 @@ async function pauseSelected() {
             </div>
 
             <div className="flex items-center gap-2">
-              <span className="w-3.5 h-3.5 rounded-full bg-white/30" />
+              <span className="w-3.5 h-3.5 rounded-full bg-red-300/50" />
               <p>Paused</p>
             </div>
 
             <div className="flex items-center gap-2">
-              <span className="w-3.5 h-3.5 rounded-full border border-dashed border-[#D9FF57]" />
-              <p>Upcoming</p>
+              <span className="w-3.5 h-3.5 rounded-full bg-blue-300/50" />
+              <p>Changed</p>
             </div>
           </div>
 
@@ -285,25 +320,27 @@ async function pauseSelected() {
               </h3>
 
               <p className="text-sm text-white/50 mb-5">
-                Selected: {selectedDays.sort((a, b) => a - b).join(', ')}
+                Selected: {[...selectedDays].sort((a, b) => a - b).join(', ')}
               </p>
 
               <div className="grid grid-cols-2 gap-3 mb-4">
                 {selectedHasActive && (
                   <button
                     onClick={pauseSelected}
-                    className="rounded-2xl bg-[#D9FF57] text-[#1F2430] py-3 font-semibold press"
+                    disabled={loading}
+                    className="rounded-2xl bg-[#D9FF57] text-[#1F2430] py-3 font-semibold press disabled:opacity-50"
                   >
-                    Pause
+                    {loading ? 'Wait...' : 'Pause'}
                   </button>
                 )}
 
                 {selectedHasPaused && (
                   <button
                     onClick={resumeSelected}
-                    className="rounded-2xl bg-white/10 border border-white/10 py-3 font-semibold press"
+                    disabled={loading}
+                    className="rounded-2xl bg-white/10 border border-white/10 py-3 font-semibold press disabled:opacity-50"
                   >
-                    Resume
+                    {loading ? 'Wait...' : 'Resume'}
                   </button>
                 )}
               </div>
@@ -321,7 +358,8 @@ async function pauseSelected() {
 
                 <button
                   onClick={changeQuantity}
-                  className="rounded-2xl bg-[#D9FF57]/15 border border-[#D9FF57]/40 text-[#D9FF57] px-5 font-semibold press"
+                  disabled={loading}
+                  className="rounded-2xl bg-[#D9FF57]/15 border border-[#D9FF57]/40 text-[#D9FF57] px-5 font-semibold press disabled:opacity-50"
                 >
                   Save
                 </button>
@@ -329,7 +367,7 @@ async function pauseSelected() {
             </div>
           )}
 
-          <div className="glass-card mt-5 rounded-[34px] p-5">
+                    <div className="glass-card mt-5 rounded-[34px] p-5">
             <div className="flex items-center justify-between mb-6">
               <h3 className="text-lg font-semibold">{currentMonth} Summary</h3>
 
@@ -341,14 +379,19 @@ async function pauseSelected() {
             <div className="grid grid-cols-2 gap-4">
               <div className="rounded-3xl bg-white/10 border border-white/10 p-4">
                 <p className="text-white/45 text-xs mb-2">Total Milk</p>
-                <h2 className="text-2xl font-bold">24L</h2>
+                <h2 className="text-2xl font-bold">{totalMilk}L</h2>
               </div>
 
               <div className="rounded-3xl bg-white/10 border border-white/10 p-4">
+                <p className="text-white/45 text-xs mb-2">Remaining Milk</p>
+                <h2 className="text-2xl font-bold">{remainingMilk}L</h2>
+              </div>
+
+              <div className="rounded-3xl bg-white/10 border border-white/10 p-4 col-span-2">
                 <p className="text-white/45 text-xs mb-2">Remaining Balance</p>
                 <h2 className="text-2xl font-bold text-[#D9FF57]">
-  {localStorage.getItem('remainingBalance') || '₹0'}
-</h2>
+                  {localStorage.getItem('remainingBalance') || '₹0'}
+                </h2>
               </div>
             </div>
           </div>

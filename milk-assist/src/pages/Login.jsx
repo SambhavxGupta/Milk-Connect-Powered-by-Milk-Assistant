@@ -4,6 +4,9 @@ import { ArrowRight, Milk } from 'lucide-react'
 import { motion } from 'framer-motion'
 
 export default function Login() {
+  const API_BASE = ['localhost', '127.0.0.1'].includes(window.location.hostname)
+  ? 'http://127.0.0.1:5000'
+  : 'https://milk-connect-powered-by-milk-assistant.onrender.com'
   const [mobile, setMobile] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
@@ -21,7 +24,7 @@ export default function Login() {
     setError('')
 
     try {
-      const response = await fetch('https://milk-connect-powered-by-milk-assistant.onrender.com/api/login', {
+      const response = await fetch(`${API_BASE}/api/login`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

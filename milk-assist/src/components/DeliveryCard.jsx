@@ -5,7 +5,8 @@ import { motion } from 'framer-motion'
 import { AppContext } from '../context/AppContext'
 
 export default function DeliveryCard() {
-  const { deliveryStatus, milkQuantity } = useContext(AppContext)
+  const { deliveryStatus } = useContext(AppContext)
+  const milkQuantity = localStorage.getItem('litres') || '1L'
   const navigate = useNavigate()
 
   return (
