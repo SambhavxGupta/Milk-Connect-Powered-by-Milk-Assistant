@@ -4,3 +4,5 @@ service_account.json
 .env
 node_modules/
 dist/
+logs.txt
+*.log
