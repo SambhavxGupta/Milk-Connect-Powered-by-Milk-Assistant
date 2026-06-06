@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react'
 import QRCode from 'qrcode'
-import { getCustomerAuth } from '../utils/auth'
 import {
   ArrowLeft,
   CheckCircle,
@@ -13,6 +12,7 @@ import {
 import { useNavigate } from 'react-router-dom'
 import FloatingBottomNav from '../components/FloatingBottomNav'
 import { showToast } from '../utils/toast'
+import { getCustomerAuth } from '../utils/auth'
 
 const API_BASE = ['localhost', '127.0.0.1'].includes(window.location.hostname)
   ? 'http://127.0.0.1:5000'
@@ -25,38 +25,71 @@ export default function Payment() {
   const mobile = localStorage.getItem('customerMobile') || ''
   const remainingBalance = localStorage.getItem('remainingBalance') || '₹0'
 
+  const balanceAmount =
+    remainingBalance.replace('₹', '').replace(',', '').trim() || '0'
+
+  const [paidAmount, setPaidAmount] = useState(balanceAmount)
   const [loading, setLoading] = useState(false)
   const [submitted, setSubmitted] = useState(false)
   const [paymentInfo, setPaymentInfo] = useState(null)
   const [qrDataUrl, setQrDataUrl] = useState('')
-  const [infoLoading, setInfoLoading] = useState(true)
+  const [infoLoading, setInfoLoading] = useState(false)
   const [safetyAlert, setSafetyAlert] = useState(true)
-  const amount = remainingBalance.replace('₹', '').replace(',', '').trim() || '0'
 
   useEffect(() => {
-  loadPaymentInfo()
+    const timer = setTimeout(() => {
+      setSafetyAlert(false)
+    }, 4500)
 
-  const timer = setTimeout(() => {
-    setSafetyAlert(false)
-  }, 4500)
+    return () => clearTimeout(timer)
+  }, [])
 
-  return () => clearTimeout(timer)
-}, [])
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      loadPaymentInfo()
+    }, 500)
+
+    return () => clearTimeout(timer)
+  }, [paidAmount])
+
+  function cleanAmount(value) {
+    return String(value || '').replace(/[^\d.]/g, '')
+  }
+
+  function isValidAmount(value) {
+    const amountNumber = Number(value)
+    return !Number.isNaN(amountNumber) && amountNumber > 0
+  }
 
   async function loadPaymentInfo() {
+    const amount = cleanAmount(paidAmount)
+
+    if (!isValidAmount(amount)) {
+      setPaymentInfo(null)
+      setQrDataUrl('')
+      return
+    }
+
     setInfoLoading(true)
+    setSubmitted(false)
 
     try {
       const res = await fetch(`${API_BASE}/api/payment-info`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(getCustomerAuth({ amount })),
+        body: JSON.stringify(
+          getCustomerAuth({
+            amount,
+          })
+        ),
       })
 
       const data = await res.json()
 
       if (!data.success) {
         showToast(data.message || 'Payment info unavailable', 'error')
+        setPaymentInfo(null)
+        setQrDataUrl('')
         setInfoLoading(false)
         return
       }
@@ -109,6 +142,18 @@ export default function Payment() {
   }
 
   async function markPaid() {
+    const amount = cleanAmount(paidAmount)
+
+    if (!isValidAmount(amount)) {
+      showToast('Enter a valid amount paid', 'warning')
+      return
+    }
+
+    if (!paymentInfo?.upi_link) {
+      showToast('Payment QR is not ready yet', 'warning')
+      return
+    }
+
     if (loading || submitted) return
 
     setLoading(true)
@@ -117,10 +162,12 @@ export default function Payment() {
       const res = await fetch(`${API_BASE}/api/payment-request`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(getCustomerAuth({
-  amount,
-  note: `Payment submitted from app by ${name}`,
-})),
+        body: JSON.stringify(
+          getCustomerAuth({
+            amount,
+            note: `Payment submitted from app by ${name}`,
+          })
+        ),
       })
 
       const data = await res.json()
@@ -143,6 +190,11 @@ export default function Payment() {
     }
 
     window.location.href = paymentInfo.upi_link
+  }
+
+  function setFullBalance() {
+    setPaidAmount(balanceAmount)
+    showToast('Full balance selected', 'success')
   }
 
   return (
@@ -169,63 +221,110 @@ export default function Payment() {
 
             <div className="flex items-center gap-2">
               <IndianRupee className="text-[#D9FF57]" size={28} />
-              <h2 className="text-5xl font-bold text-[#D9FF57]">{amount}</h2>
+              <h2 className="text-5xl font-bold text-[#D9FF57]">
+                {balanceAmount}
+              </h2>
             </div>
 
             <p className="text-white/45 text-sm mt-4">Customer: {name}</p>
             <p className="text-white/35 text-xs mt-1">Mobile: {mobile}</p>
           </div>
 
+          <div className="glass-card rounded-[30px] p-5 mb-5">
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <p className="text-white/45 text-xs mb-1">Amount Paying</p>
+                <h2 className="text-xl font-bold">Enter amount you paid</h2>
+              </div>
+
+              <button
+                onClick={setFullBalance}
+                className="px-3 py-2 rounded-xl bg-[#D9FF57]/15 border border-[#D9FF57]/30 text-[#D9FF57] text-xs font-bold press"
+              >
+                Full Due
+              </button>
+            </div>
+
+            <div className="relative">
+              <IndianRupee
+                size={18}
+                className="absolute left-4 top-1/2 -translate-y-1/2 text-white/35"
+              />
+
+              <input
+                value={paidAmount}
+                onChange={(e) => {
+                  setPaidAmount(cleanAmount(e.target.value))
+                  setSubmitted(false)
+                }}
+                placeholder="Enter amount"
+                type="text"
+                inputMode="decimal"
+                className="w-full rounded-2xl bg-white/10 border border-white/10 px-11 py-4 outline-none text-white text-center text-xl font-bold placeholder:text-white/35 focus:border-[#D9FF57]/50"
+              />
+            </div>
+
+            <p className="text-white/35 text-xs mt-3 leading-relaxed">
+              Enter the exact amount you paid. Wrong amount may delay verification.
+            </p>
+          </div>
+
           <div
-  className={`payment-safety-card glass-card rounded-[28px] p-5 mb-5 ${
-    safetyAlert ? 'payment-safety-alert' : ''
-  }`}
->
-  <div className="flex items-start gap-3 relative z-10">
-    <div
-      className={`w-11 h-11 rounded-2xl flex items-center justify-center shrink-0 ${
-        safetyAlert
-          ? 'bg-red-400/20 border border-red-300/50'
-          : 'bg-[#D9FF57]/10 border border-[#D9FF57]/25'
-      }`}
-    >
-      <ShieldCheck
-        size={21}
-        className={safetyAlert ? 'text-red-200' : 'text-[#D9FF57]'}
-      />
-    </div>
+            className={`payment-safety-card glass-card rounded-[28px] p-5 mb-5 ${
+              safetyAlert ? 'payment-safety-alert' : ''
+            }`}
+          >
+            <div className="flex items-start gap-3 relative z-10">
+              <div
+                className={`w-11 h-11 rounded-2xl flex items-center justify-center shrink-0 ${
+                  safetyAlert
+                    ? 'bg-red-400/20 border border-red-300/50'
+                    : 'bg-[#D9FF57]/10 border border-[#D9FF57]/25'
+                }`}
+              >
+                <ShieldCheck
+                  size={21}
+                  className={safetyAlert ? 'text-red-200' : 'text-[#D9FF57]'}
+                />
+              </div>
 
-    <div>
-      <div className="flex items-center gap-2">
-        <h2 className={safetyAlert ? 'text-lg font-bold text-red-100' : 'text-lg font-bold'}>
-          Payment Safety Check
-        </h2>
+              <div>
+                <div className="flex items-center gap-2">
+                  <h2
+                    className={
+                      safetyAlert
+                        ? 'text-lg font-bold text-red-100'
+                        : 'text-lg font-bold'
+                    }
+                  >
+                    Payment Safety Check
+                  </h2>
 
-        {safetyAlert && (
-          <span className="px-2 py-1 rounded-full bg-red-400 text-[#1F2430] text-[10px] font-black uppercase tracking-wide">
-            Important
-          </span>
-        )}
-      </div>
+                  {safetyAlert && (
+                    <span className="px-2 py-1 rounded-full bg-red-400 text-[#1F2430] text-[10px] font-black uppercase tracking-wide">
+                      Important
+                    </span>
+                  )}
+                </div>
 
-      <p className="text-white/50 text-sm mt-2 leading-relaxed">
-        Before paying, confirm the receiver name shown in your UPI app:
-      </p>
+                <p className="text-white/50 text-sm mt-2 leading-relaxed">
+                  Before paying, confirm the receiver name shown in your UPI app:
+                </p>
 
-      <p
-        className={`text-xl font-bold mt-2 ${
-          safetyAlert ? 'text-red-200' : 'text-[#D9FF57]'
-        }`}
-      >
-        {paymentInfo?.payee_name || 'Loading...'}
-      </p>
+                <p
+                  className={`text-xl font-bold mt-2 ${
+                    safetyAlert ? 'text-red-200' : 'text-[#D9FF57]'
+                  }`}
+                >
+                  {paymentInfo?.payee_name || 'Loading...'}
+                </p>
 
-      <p className="text-white/35 text-xs mt-2 leading-relaxed">
-        If the receiver name is different, do not pay and contact the vendor.
-      </p>
-    </div>
-  </div>
-</div>
+                <p className="text-white/35 text-xs mt-2 leading-relaxed">
+                  If the receiver name is different, do not pay and contact the vendor.
+                </p>
+              </div>
+            </div>
+          </div>
 
           <button
             onClick={copyPaymentLink}
@@ -240,7 +339,7 @@ export default function Payment() {
             <div className="bg-white rounded-[28px] p-5 inline-block min-w-[260px] min-h-[260px]">
               {infoLoading ? (
                 <div className="w-[220px] h-[220px] flex items-center justify-center text-[#1F2430] font-bold">
-                  Loading QR...
+                  Updating QR...
                 </div>
               ) : qrDataUrl ? (
                 <img
@@ -250,13 +349,13 @@ export default function Payment() {
                 />
               ) : (
                 <div className="w-[220px] h-[220px] flex items-center justify-center text-[#1F2430] font-bold">
-                  QR unavailable
+                  Enter amount
                 </div>
               )}
             </div>
 
             <p className="text-white/45 text-xs mt-4">
-              Tap QR to copy secure payment link.
+              QR updates automatically for the entered amount.
             </p>
           </button>
 
@@ -283,7 +382,7 @@ export default function Payment() {
             className="w-full bg-[#D9FF57] text-[#1F2430] font-bold p-4 rounded-2xl flex items-center justify-center gap-2 press mb-4 disabled:opacity-50"
           >
             <Wallet size={18} />
-            Open UPI App
+            Open UPI App for ₹{cleanAmount(paidAmount) || 0}
           </button>
 
           <button
@@ -296,7 +395,7 @@ export default function Payment() {
               ? 'Submitting...'
               : submitted
                 ? 'Payment Request Submitted'
-                : 'I have paid'}
+                : `I have paid ₹${cleanAmount(paidAmount) || 0}`}
           </button>
 
           <p className="text-white/35 text-xs text-center mt-4 leading-relaxed">
