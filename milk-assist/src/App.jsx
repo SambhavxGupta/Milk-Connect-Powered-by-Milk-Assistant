@@ -1,3 +1,4 @@
+import ToastProvider from './components/ToastProvider'
 import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import Payment from './pages/Payment'
 import Support from './pages/Support'
@@ -15,6 +16,7 @@ import History from './pages/History'
 export default function App() {
   return (
     <BrowserRouter>
+    <ToastProvider />
       <Routes>
         <Route path="/support" element={<Support />} />
         <Route path="/" element={<Splash />} />

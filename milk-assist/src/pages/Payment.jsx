@@ -1,3 +1,4 @@
+import { showToast } from '../utils/toast'
 import { useState } from 'react'
 import {
   ArrowLeft,
@@ -40,18 +41,18 @@ export default function Payment() {
   async function copyUpiId() {
     try {
       await navigator.clipboard.writeText(UPI_ID)
-      alert('UPI ID copied')
+      showToast('UPI ID copied', 'success')
     } catch {
-      alert(`UPI ID: ${UPI_ID}`)
+      showToast(`UPI ID: ${UPI_ID}`, 'info')
     }
   }
 
   async function copyPaymentLink() {
     try {
       await navigator.clipboard.writeText(upiLink)
-      alert('Payment link copied')
+      showToast('Payment link copied', 'success')
     } catch {
-      alert('Could not copy payment link')
+      showToast('Could not copy payment link', 'error')
     }
   }
 
@@ -72,13 +73,13 @@ export default function Payment() {
       })
 
       const data = await res.json()
-      alert(data.message)
+      showToast(data.message, data.success ? 'success' : 'warning')
 
       if (data.success) {
         setSubmitted(true)
       }
     } catch (err) {
-      alert('Payment request failed. Please try again.')
+      showToast('Payment request failed. Please try again.', 'error')
     }
 
     setLoading(false)

@@ -1,3 +1,4 @@
+import { showToast } from '../utils/toast'
 import { useEffect, useState } from 'react'
 import {
   ArrowLeft,
@@ -9,6 +10,7 @@ import {
 } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import FloatingBottomNav from '../components/FloatingBottomNav'
+
 
 const API_BASE = ['localhost', '127.0.0.1'].includes(window.location.hostname)
   ? 'http://127.0.0.1:5000'
@@ -110,14 +112,14 @@ export default function Calendar() {
       })
 
       const data = await res.json()
-      alert(data.result)
+      showToast(data.result, data.result.includes('✅') ? 'success' : 'warning')
 
       if (data.result.includes('✅')) {
         setSelectedDays([])
         await loadCalendarData()
       }
     } catch (err) {
-      alert('Pause failed')
+      showToast('Pause failed. Please try again.', 'error')
     }
 
     setLoading(false)
@@ -139,14 +141,14 @@ export default function Calendar() {
       })
 
       const data = await res.json()
-      alert(data.result)
+      showToast(data.result, data.result.includes('✅') ? 'success' : 'warning')
 
       if (data.result.includes('✅')) {
         setSelectedDays([])
         await loadCalendarData()
       }
     } catch (err) {
-      alert('Resume failed')
+      showToast('Resume failed. Please try again.', 'error')
     }
 
     setLoading(false)
@@ -169,7 +171,7 @@ export default function Calendar() {
       })
 
       const data = await res.json()
-      alert(data.result)
+      showToast(data.result, data.result.includes('✅') ? 'success' : 'warning')
 
       if (data.result.includes('✅')) {
         setQuantity('')
@@ -177,7 +179,7 @@ export default function Calendar() {
         await loadCalendarData()
       }
     } catch (err) {
-      alert('Quantity change failed')
+      showToast('Resume failed. Please try again.', 'error')
     }
 
     setLoading(false)

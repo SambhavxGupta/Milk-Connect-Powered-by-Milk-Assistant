@@ -1,3 +1,4 @@
+import { showToast } from '../utils/toast'
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Pause, Play, FileText, Repeat } from 'lucide-react'
@@ -60,13 +61,13 @@ export default function QuickActions() {
       })
 
       const data = await res.json()
-      alert(data.result)
+      showToast(data.result, data.result.includes('✅') ? 'success' : 'warning')
 
       if (data.result.includes('✅')) {
         setIsPaused(!isPaused)
       }
     } catch (err) {
-      alert('Action failed')
+      showToast('Action failed. Please try again.', 'error')
     }
 
     setLoading(false)

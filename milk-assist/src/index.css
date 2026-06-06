@@ -87,3 +87,98 @@ input {
 input::placeholder {
   color: rgba(255, 255, 255, 0.4);
 }
+
+.premium-toast {
+  position: relative;
+  overflow: hidden;
+  border-radius: 28px;
+  padding: 1px;
+  background:
+    linear-gradient(135deg, rgba(217, 255, 87, 0.18), rgba(255, 255, 255, 0.05)),
+    rgba(31, 36, 48, 0.92);
+  box-shadow:
+    0 24px 70px rgba(0, 0, 0, 0.55),
+    0 0 34px rgba(217, 255, 87, 0.18);
+}
+
+.premium-toast::before {
+  content: "";
+  position: absolute;
+  inset: 1px;
+  z-index: 1;
+  border-radius: 27px;
+  background:
+    radial-gradient(circle at top left, rgba(217, 255, 87, 0.14), transparent 34%),
+    radial-gradient(circle at bottom right, rgba(217, 255, 87, 0.08), transparent 36%),
+    linear-gradient(135deg, #2e3642 0%, #1f2430 48%, #101620 100%);
+}
+
+.premium-toast-border {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+.premium-toast-glow-line {
+  fill: none;
+  stroke: var(--toast-accent);
+  stroke-width: 5;
+  stroke-linecap: round;
+  stroke-dasharray: 140 860;
+  stroke-dashoffset: 0;
+  opacity: 0.45;
+  filter: drop-shadow(0 0 12px var(--toast-accent))
+          drop-shadow(0 0 22px var(--toast-accent));
+  animation: toast-border-run 3.6s linear forwards;
+}
+
+.premium-toast-star-line {
+  fill: none;
+  stroke: white;
+  stroke-width: 2.8;
+  stroke-linecap: round;
+  stroke-dasharray: 34 966;
+  stroke-dashoffset: 0;
+  opacity: 1;
+  filter: drop-shadow(0 0 8px white)
+          drop-shadow(0 0 18px var(--toast-accent))
+          drop-shadow(0 0 30px var(--toast-accent));
+  animation: toast-border-run 3.6s linear forwards;
+}
+
+.premium-toast-inner {
+  position: relative;
+  z-index: 4;
+  min-height: 76px;
+  padding: 14px;
+  border-radius: 27px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  backdrop-filter: blur(18px);
+  background: rgba(255, 255, 255, 0.015);
+}
+
+@keyframes toast-border-run {
+  0% {
+    stroke-dashoffset: 0;
+    opacity: 0;
+  }
+
+  8% {
+    opacity: 1;
+  }
+
+  92% {
+    opacity: 1;
+  }
+
+  100% {
+    stroke-dashoffset: -1000;
+    opacity: 0;
+  }
+}
