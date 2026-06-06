@@ -13,6 +13,7 @@ from milk_service import (
     get_payment_history,
     verify_customer_login,
     get_action_history,
+    change_customer_pin,
 )
 
 
@@ -193,6 +194,21 @@ def api_login():
         "status": customer_data["status"],
     })
     
+@app.route("/api/change-pin", methods=["POST"])
+def api_change_pin():
+    data = request.json or {}
+
+    mobile = data.get("mobile")
+    current_pin = data.get("current_pin")
+    new_pin = data.get("new_pin")
+
+    result = change_customer_pin(
+        mobile=mobile,
+        current_pin=current_pin,
+        new_pin=new_pin,
+    )
+
+    return jsonify(result)    
     
 @app.route("/api/pause", methods=["POST"])
 def api_pause():

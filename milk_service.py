@@ -976,3 +976,67 @@ def get_action_history(mobile):
     history.reverse()
 
     return history
+# =====================================================
+# CHANGE CUSTOMER PIN
+# =====================================================
+
+def change_customer_pin(mobile, current_pin, new_pin):
+    customer = get_customer_info(mobile)
+
+    if not customer:
+        return {
+            "success": False,
+            "message": "❌ Customer not found.",
+        }
+
+    current_pin = str(current_pin or "").strip()
+    new_pin = str(new_pin or "").strip()
+    saved_pin = str(customer.get("login_pin", "")).strip()
+
+    if not saved_pin:
+        return {
+            "success": False,
+            "message": "❌ PIN is not set for this customer. Please contact admin.",
+        }
+
+    if current_pin != saved_pin:
+        return {
+            "success": False,
+            "message": "❌ Current PIN is incorrect.",
+        }
+
+    if len(new_pin) != 6 or not new_pin.isdigit():
+        return {
+            "success": False,
+            "message": "❌ New PIN must be exactly 6 digits.",
+        }
+
+    if new_pin == saved_pin:
+        return {
+            "success": False,
+            "message": "⚠️ New PIN cannot be same as current PIN.",
+        }
+
+    all_values = sheet.get_all_values()
+    headers = all_values[0]
+
+    pin_col = find_column(headers, ["login pin", "pin"])
+
+    if pin_col is None:
+        return {
+            "success": False,
+            "message": "❌ Login PIN column not found in Google Sheet.",
+        }
+
+    sheet.update_cell(customer["row"], pin_col + 1, new_pin)
+
+    write_log(
+        mobile,
+        "CHANGE_PIN",
+        "Customer changed login PIN"
+    )
+
+    return {
+        "success": True,
+        "message": "✅ PIN changed successfully.",
+    }

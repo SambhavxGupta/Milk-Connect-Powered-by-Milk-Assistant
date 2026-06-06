@@ -1,5 +1,5 @@
 import InstallAppCard from '../components/InstallAppCard'
-import { LogOut, Phone, User, Wallet, Milk, Home } from 'lucide-react'
+import { LogOut, Phone, User, Wallet, Milk, Home, KeyRound } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import FloatingBottomNav from '../components/FloatingBottomNav'
 import PageHeader from '../components/PageHeader'
@@ -65,6 +65,26 @@ export default function Account() {
             <p className="text-white/55 text-sm">Flat Number</p>
             <h3 className="text-lg font-semibold mt-1">{flatNo}</h3>
           </div>
+
+          <div
+  onClick={() => navigate('/change-pin')}
+  className="glass-card rounded-[28px] p-5 mb-5 flex items-center justify-between press cursor-pointer"
+>
+  <div className="flex items-center gap-3">
+    <div className="w-11 h-11 rounded-2xl bg-[#D9FF57]/10 border border-[#D9FF57]/25 flex items-center justify-center">
+      <KeyRound size={21} className="text-[#D9FF57]" />
+    </div>
+
+    <div>
+      <h2 className="text-xl font-bold">Change PIN</h2>
+      <p className="text-white/50 text-sm mt-1">
+        Update your secure login PIN
+      </p>
+    </div>
+  </div>
+
+  <span className="text-white/35 text-xl">›</span>
+</div>
 
           <div className="glass-card rounded-[28px] p-5 mb-5">
             <div className="flex items-center gap-3 mb-3">

@@ -12,12 +12,14 @@ import AddOrder from './pages/AddOrder'
 import Cart from './pages/Cart'
 import ProductDetail from './pages/ProductDetail'
 import History from './pages/History'
+import ChangePin from './pages/ChangePin'
 
 export default function App() {
   return (
     <BrowserRouter>
     <ToastProvider />
       <Routes>
+        <Route path="/change-pin" element={<ChangePin />} />
         <Route path="/support" element={<Support />} />
         <Route path="/" element={<Splash />} />
         <Route path="/login" element={<Login />} />
