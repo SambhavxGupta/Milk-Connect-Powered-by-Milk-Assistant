@@ -1,5 +1,5 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom'
-
+import Payment from './pages/Payment'
 import Support from './pages/Support'
 import Splash from './pages/Splash'
 import Login from './pages/Login'
@@ -23,6 +23,7 @@ export default function App() {
         <Route path="/calendar" element={<Calendar />} />
         <Route path="/settings" element={<Settings />} />
         <Route path="/account" element={<Account />} />
+        <Route path="/payment" element={<Payment />} />
         <Route path="/add-order" element={<AddOrder />} />
         <Route path="/cart" element={<Cart />} />
         <Route path="/product/:productName" element={<ProductDetail />} />

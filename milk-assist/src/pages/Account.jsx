@@ -8,11 +8,9 @@ export default function Account() {
 
   const name = localStorage.getItem('customerName') || 'Customer'
   const mobile = localStorage.getItem('customerMobile') || 'Not logged in'
-
-  // Temporary values. Later these will come from Google Sheet.
   const flatNo = localStorage.getItem('flatNo') || 'Not added'
   const litres = localStorage.getItem('litres') || '1L'
-  const remainingBalance = localStorage.getItem('remainingBalance') || '₹2315'
+  const remainingBalance = localStorage.getItem('remainingBalance') || '₹0'
 
   function logout() {
     localStorage.clear()
@@ -75,7 +73,10 @@ export default function Account() {
               View and pay your monthly milk bill.
             </p>
 
-            <button className="w-full mt-5 bg-[#D9FF57] text-[#1F2430] font-bold p-4 rounded-2xl press">
+            <button
+              onClick={() => navigate('/payment')}
+              className="w-full mt-5 bg-[#D9FF57] text-[#1F2430] font-bold p-4 rounded-2xl press"
+            >
               Make Payment
             </button>
           </div>

@@ -8,6 +8,8 @@ from milk_service import (
     handle_resume,
     handle_modify_quantity,
     get_customer_info,
+    submit_payment_request,
+    get_payment_history,
 )
 
 from milk_service import (
@@ -233,6 +235,35 @@ def api_calendar_data():
     calendar_data = get_customer_calendar(mobile)
 
     return jsonify(calendar_data)
+@app.route("/api/payment-request", methods=["POST"])
+def api_payment_request():
+    data = request.json or {}
+
+    mobile = data.get("mobile")
+    amount = data.get("amount")
+    note = data.get("note", "")
+
+    result = submit_payment_request(
+        mobile=mobile,
+        amount=amount,
+        note=note,
+    )
+
+    return jsonify(result)
+
+
+@app.route("/api/payment-history", methods=["POST"])
+def api_payment_history():
+    data = request.json or {}
+
+    mobile = data.get("mobile")
+
+    history = get_payment_history(mobile)
+
+    return jsonify({
+        "success": True,
+        "history": history,
+    })
 
 if __name__ == "__main__":
     print("🔥 Flask app starting...")

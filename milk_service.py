@@ -67,9 +67,8 @@ if not SPREADSHEET_ID:
         "SPREADSHEET_ID missing in .env file"
     )
 
-sheet = client.open_by_key(
-    SPREADSHEET_ID
-).sheet1
+spreadsheet = client.open_by_key(SPREADSHEET_ID)
+sheet = spreadsheet.sheet1
 print("11")
 
 print("✅ Google Sheet connected successfully")
@@ -604,3 +603,111 @@ def handle_modify_quantity(mobile, qty, dates=None):
         return "❌ Selected date(s) are paused. Resume first, then change quantity."
 
     return "❌ Quantity update failed. No matching dates found."
+# =====================================================
+# PAYMENT REQUESTS
+# =====================================================
+
+PAYMENT_SHEET_NAME = "Payment_Requests"
+
+PAYMENT_HEADERS = [
+    "Timestamp",
+    "Name",
+    "Mobile",
+    "Amount",
+    "Status",
+    "Note",
+]
+
+
+def get_payment_sheet():
+    try:
+        payment_sheet = spreadsheet.worksheet(PAYMENT_SHEET_NAME)
+    except gspread.WorksheetNotFound:
+        payment_sheet = spreadsheet.add_worksheet(
+            title=PAYMENT_SHEET_NAME,
+            rows=1000,
+            cols=len(PAYMENT_HEADERS),
+        )
+        payment_sheet.append_row(PAYMENT_HEADERS)
+
+        payment_sheet.format("A1:F1", {
+            "textFormat": {"bold": True},
+            "backgroundColor": {"red": 0.85, "green": 1, "blue": 0.35},
+        })
+
+    headers = payment_sheet.row_values(1)
+
+    if headers != PAYMENT_HEADERS:
+        payment_sheet.update("A1:F1", [PAYMENT_HEADERS])
+
+    return payment_sheet
+
+
+def submit_payment_request(mobile, amount, note=""):
+    customer = get_customer_info(mobile)
+
+    if not customer:
+        return {
+            "success": False,
+            "message": "❌ Customer not found.",
+        }
+
+    try:
+        amount_value = float(str(amount).replace("₹", "").replace(",", "").strip())
+    except Exception:
+        return {
+            "success": False,
+            "message": "❌ Invalid payment amount.",
+        }
+
+    if amount_value <= 0:
+        return {
+            "success": False,
+            "message": "❌ Payment amount must be greater than 0.",
+        }
+
+    payment_sheet = get_payment_sheet()
+
+    timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+    payment_sheet.append_row([
+        timestamp,
+        customer["name"],
+        mobile,
+        amount_value,
+        "Pending",
+        note or "Customer clicked I have paid",
+    ])
+
+    write_log(
+        mobile,
+        "PAYMENT_REQUEST",
+        f"₹{amount_value} payment request submitted"
+    )
+
+    return {
+        "success": True,
+        "message": "✅ Payment request submitted. Admin will verify it soon.",
+    }
+
+
+def get_payment_history(mobile):
+    payment_sheet = get_payment_sheet()
+    rows = payment_sheet.get_all_records()
+
+    history = []
+
+    for row in rows:
+        if normalize_mobile(row.get("Mobile", "")) == normalize_mobile(mobile):
+            history.append({
+                "timestamp": row.get("Timestamp", ""),
+                "name": row.get("Name", ""),
+                "mobile": row.get("Mobile", ""),
+                "amount": row.get("Amount", ""),
+                "status": row.get("Status", ""),
+                "note": row.get("Note", ""),
+            })
+
+    history.reverse()
+
+    return history
