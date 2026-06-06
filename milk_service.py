@@ -77,10 +77,7 @@ print("✅ Google Sheet connected successfully")
 # =====================================================
 
 def write_log(mobile, action, result):
-
-    timestamp = datetime.now().strftime(
-        "%Y-%m-%d %H:%M:%S"
-    )
+    timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
     log_line = (
         f"{timestamp} | "
@@ -90,8 +87,12 @@ def write_log(mobile, action, result):
     )
 
     with open("logs.txt", "a", encoding="utf-8") as log_file:
-
         log_file.write(log_line)
+
+    try:
+        append_action_log(mobile, action, result)
+    except Exception as e:
+        print("Action log sheet write failed:", e)
 
 # =====================================================
 # HELPERS
@@ -894,6 +895,82 @@ def get_payment_history(mobile):
                 "amount": row.get("Amount", ""),
                 "status": row.get("Status", ""),
                 "note": row.get("Note", ""),
+            })
+
+    history.reverse()
+
+    return history
+
+# =====================================================
+# ACTION LOGS
+# =====================================================
+
+ACTION_LOG_SHEET_NAME = "Action_Logs"
+
+ACTION_LOG_HEADERS = [
+    "Timestamp",
+    "Name",
+    "Mobile",
+    "Action",
+    "Details",
+]
+
+
+def get_action_log_sheet():
+    try:
+        action_sheet = spreadsheet.worksheet(ACTION_LOG_SHEET_NAME)
+    except gspread.WorksheetNotFound:
+        action_sheet = spreadsheet.add_worksheet(
+            title=ACTION_LOG_SHEET_NAME,
+            rows=1000,
+            cols=len(ACTION_LOG_HEADERS),
+        )
+
+        action_sheet.append_row(ACTION_LOG_HEADERS)
+
+        action_sheet.format("A1:E1", {
+            "textFormat": {"bold": True},
+            "backgroundColor": {"red": 0.85, "green": 1, "blue": 0.35},
+        })
+
+    headers = action_sheet.row_values(1)
+
+    if headers != ACTION_LOG_HEADERS:
+        action_sheet.update("A1:E1", [ACTION_LOG_HEADERS])
+
+    return action_sheet
+
+
+def append_action_log(mobile, action, details):
+    action_sheet = get_action_log_sheet()
+    customer = get_customer_info(mobile)
+
+    timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    name = customer["name"] if customer else "Unknown"
+
+    action_sheet.append_row([
+        timestamp,
+        name,
+        mobile,
+        action,
+        details,
+    ])
+
+
+def get_action_history(mobile):
+    action_sheet = get_action_log_sheet()
+    rows = action_sheet.get_all_records()
+
+    history = []
+
+    for row in rows:
+        if normalize_mobile(row.get("Mobile", "")) == normalize_mobile(mobile):
+            history.append({
+                "timestamp": row.get("Timestamp", ""),
+                "name": row.get("Name", ""),
+                "mobile": row.get("Mobile", ""),
+                "action": row.get("Action", ""),
+                "details": row.get("Details", ""),
             })
 
     history.reverse()

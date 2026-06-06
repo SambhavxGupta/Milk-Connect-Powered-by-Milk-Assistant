@@ -12,6 +12,7 @@ from milk_service import (
     submit_payment_request,
     get_payment_history,
     verify_customer_login,
+    get_action_history,
 )
 
 
@@ -115,6 +116,18 @@ def route_message(session, message):
 def home():
     return render_template("index.html")
 
+@app.route("/api/action-history", methods=["POST"])
+def api_action_history():
+    data = request.json or {}
+
+    mobile = data.get("mobile")
+
+    history = get_action_history(mobile)
+
+    return jsonify({
+        "success": True,
+        "history": history,
+    })
 
 @app.route("/chat", methods=["POST"])
 def chat():
