@@ -7,6 +7,7 @@ import {
   LogOut,
   Milk,
   Pause,
+  Search,
   ShieldCheck,
   Truck,
   Users,
@@ -25,6 +26,7 @@ export default function AdminDashboard() {
 
   const [dashboard, setDashboard] = useState(null)
   const [loading, setLoading] = useState(true)
+  const [customerSearch, setCustomerSearch] = useState('')
 
   async function loadDashboard() {
     if (!adminPin) {
@@ -96,6 +98,24 @@ async function updatePaymentStatus(row, status) {
   const tomorrow = dashboard?.tomorrow_delivery
   const pendingPayments = dashboard?.pending_payments || []
   const deliveries = tomorrow?.deliveries || []
+
+  const customers = dashboard?.customers || []
+
+const filteredCustomers = customers.filter((customer) => {
+  const search = customerSearch.toLowerCase().trim()
+
+  if (!search) return true
+
+  const name = String(customer.name || '').toLowerCase()
+  const flat = String(customer.flat_no || '').toLowerCase()
+  const mobile = String(customer.mobile || '').toLowerCase()
+
+  return (
+    name.includes(search) ||
+    flat.includes(search) ||
+    mobile.includes(search)
+  )
+})
 
   return (
     <div className="min-h-screen bg-[#E9EDF2] flex justify-center items-center px-3 py-4">
@@ -197,6 +217,94 @@ async function updatePaymentStatus(row, status) {
                 />
               </div>
 
+        <div className="glass-card rounded-[30px] p-5 mb-5">
+  <div className="flex items-center justify-between mb-4">
+    <div className="flex items-center gap-3">
+      <Users size={22} className="text-[#D9FF57]" />
+      <h2 className="text-xl font-bold">Customers</h2>
+    </div>
+
+    <span className="text-xs text-white/40">
+      {filteredCustomers.length}/{customers.length}
+    </span>
+  </div>
+
+  <div className="relative mb-4">
+    <Search
+      size={17}
+      className="absolute left-4 top-1/2 -translate-y-1/2 text-white/35"
+    />
+
+    <input
+      value={customerSearch}
+      onChange={(e) => setCustomerSearch(e.target.value)}
+      placeholder="Search name, flat or mobile"
+      className="w-full rounded-2xl bg-white/10 border border-white/10 px-11 py-3.5 outline-none text-white placeholder:text-white/35 focus:border-[#D9FF57]/50"
+    />
+  </div>
+
+  {filteredCustomers.length === 0 ? (
+    <p className="text-white/45 text-sm">No customer found.</p>
+  ) : (
+    <div className="space-y-3 max-h-[420px] overflow-y-auto custom-scrollbar pr-1">
+      {filteredCustomers.map((customer, index) => {
+        const status = String(customer.status || '').toLowerCase()
+
+        let statusClass = 'bg-white/10 border-white/10 text-white/60'
+
+        if (status === 'active') {
+          statusClass = 'bg-green-400/15 border-green-300/30 text-green-200'
+        } else if (status === 'paused') {
+          statusClass = 'bg-yellow-400/15 border-yellow-300/30 text-yellow-100'
+        } else if (status === 'inactive') {
+          statusClass = 'bg-red-400/15 border-red-300/30 text-red-200'
+        } else if (status === 'testing') {
+          statusClass = 'bg-blue-400/15 border-blue-300/30 text-blue-200'
+        }
+
+        return (
+          <div
+            key={index}
+            className="rounded-2xl bg-white/8 border border-white/10 p-3"
+          >
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <h3 className="font-bold">{customer.name}</h3>
+
+                <p className="text-white/40 text-xs mt-1">
+                  Flat {customer.flat_no || '-'} • {customer.mobile}
+                </p>
+              </div>
+
+              <span
+                className={`px-2.5 py-1 rounded-full border text-[10px] font-bold capitalize ${statusClass}`}
+              >
+                {customer.status || 'Unknown'}
+              </span>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3 mt-3">
+              <div className="rounded-xl bg-white/6 border border-white/10 p-2">
+                <p className="text-white/35 text-[10px]">Quantity</p>
+                <p className="text-sm font-bold text-[#D9FF57] mt-0.5">
+                  {customer.liter || 0}L
+                </p>
+              </div>
+
+              <div className="rounded-xl bg-white/6 border border-white/10 p-2">
+                <p className="text-white/35 text-[10px]">Balance</p>
+                <p className="text-sm font-bold mt-0.5">
+                  ₹{customer.remaining_balance || 0}
+                </p>
+              </div>
+            </div>
+          </div>
+        )
+      })}
+    </div>
+  )}
+</div>
+
               <div className="glass-card rounded-[30px] p-5 mb-5">
                 <div className="flex items-center gap-3 mb-4">
                   <IndianRupee size={22} className="text-[#D9FF57]" />
@@ -275,7 +383,7 @@ async function updatePaymentStatus(row, status) {
                             </button>
                             </div>
 
-                            
+
                         <p className="text-white/35 text-xs mt-3">
                           {payment.timestamp}
                         </p>

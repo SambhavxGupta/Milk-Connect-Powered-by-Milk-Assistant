@@ -1315,6 +1315,7 @@ def get_admin_dashboard_data():
         "pending_payment_amount": format_quantity(pending_amount),
         "tomorrow_delivery": tomorrow_delivery,
         "pending_payments": pending_payments,
+        "customers": customers,
     }
     
 # =====================================================
