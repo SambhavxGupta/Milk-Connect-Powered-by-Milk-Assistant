@@ -8,18 +8,12 @@ from milk_service import (
     handle_resume,
     handle_modify_quantity,
     get_customer_info,
+    get_customer_calendar,
     submit_payment_request,
     get_payment_history,
+    verify_customer_login,
 )
 
-from milk_service import (
-    show_delivery_calendar,
-    handle_pause,
-    handle_resume,
-    handle_modify_quantity,
-    get_customer_info,
-    get_customer_calendar,
-)
 
 app = Flask(__name__)
 CORS(app)
@@ -148,40 +142,45 @@ def chat():
 def api_login():
     data = request.json or {}
 
-    mobile = data.get("mobile", "").strip()
+    mobile = data.get("mobile")
+    pin = data.get("pin")
 
-    if not mobile:
+    result = verify_customer_login(mobile, pin)
+
+    if not result["success"]:
         return jsonify({
             "success": False,
-            "message": "Mobile number required"
-        }), 400
+            "message": result["message"],
+        })
 
-    customer = get_customer_info(mobile)
+    customer = result["customer"]
 
-    if not customer:
-        return jsonify({
-            "success": False,
-            "message": "Customer not found"
-        }), 404
-
-    if customer["status"].lower() == "inactive":
-        return jsonify({
-            "success": False,
-            "message": "Account inactive"
-        }), 403
+    customer_data = {
+        "name": customer.get("name", "Customer"),
+        "mobile": mobile,
+        "flat_no": customer.get("flat_no", ""),
+        "liter": customer.get("liter", "1"),
+        "remaining_balance": customer.get("remaining_balance", "0"),
+        "status": customer.get("status", ""),
+    }
 
     return jsonify({
         "success": True,
-        "customer": {
-            "name": customer.get("name", "Customer"),
-            "mobile": mobile,
-            "status": customer.get("status", ""),
-            "liter": customer.get("liter", "1"),
-            "flat_no": customer.get("flat_no", ""),
-            "remaining_balance": customer.get("remaining_balance", "0")
-        }
-    })
+        "message": result["message"],
 
+        # New format
+        "customer": customer_data,
+
+        # Old/direct format also kept so frontend does not crash
+        "name": customer_data["name"],
+        "mobile": customer_data["mobile"],
+        "flat_no": customer_data["flat_no"],
+        "liter": customer_data["liter"],
+        "remaining_balance": customer_data["remaining_balance"],
+        "status": customer_data["status"],
+    })
+    
+    
 @app.route("/api/pause", methods=["POST"])
 def api_pause():
     data = request.json or {}

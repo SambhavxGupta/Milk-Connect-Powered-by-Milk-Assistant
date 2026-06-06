@@ -3,20 +3,30 @@ import { useNavigate } from 'react-router-dom'
 import { ArrowRight, Milk } from 'lucide-react'
 import { motion } from 'framer-motion'
 
-export default function Login() {
-  const API_BASE = ['localhost', '127.0.0.1'].includes(window.location.hostname)
+const API_BASE = ['localhost', '127.0.0.1'].includes(window.location.hostname)
   ? 'http://127.0.0.1:5000'
   : 'https://milk-connect-powered-by-milk-assistant.onrender.com'
+
+export default function Login() {
+  const navigate = useNavigate()
+
   const [mobile, setMobile] = useState('')
+  const [pin, setPin] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [showInput, setShowInput] = useState(false)
 
-  const navigate = useNavigate()
-
   async function handleLogin() {
-    if (!mobile.trim() || mobile.length !== 10) {
+    const cleanMobile = mobile.trim()
+    const cleanPin = pin.trim()
+
+    if (cleanMobile.length !== 10) {
       setError('Enter valid 10-digit registered mobile number')
+      return
+    }
+
+    if (cleanPin.length !== 6) {
+      setError('Enter your 6-digit PIN')
       return
     }
 
@@ -29,26 +39,34 @@ export default function Login() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ mobile }),
+        body: JSON.stringify({
+          mobile: cleanMobile,
+          pin: cleanPin,
+        }),
       })
 
       const data = await response.json()
 
-      if (data.success) {
-        localStorage.setItem('customerMobile', mobile)
-        localStorage.setItem('customerName', data.customer.name || 'Customer')
-        localStorage.setItem('litres', `${data.customer.liter || 1}L`)
-        localStorage.setItem('flatNo', data.customer.flat_no || '')
-        localStorage.setItem(
-          'remainingBalance',
-          `₹${data.customer.remaining_balance || 0}`
-        )
-
-        navigate('/dashboard')
-      } else {
-        setError(data.message || 'Mobile number not registered')
+      if (!data.success) {
+        setError(data.message || 'Invalid mobile number or PIN')
+        setLoading(false)
+        return
       }
+
+      const customer = data.customer || data
+
+      localStorage.setItem('customerMobile', customer.mobile || cleanMobile)
+      localStorage.setItem('customerName', customer.name || 'Customer')
+      localStorage.setItem('litres', `${customer.liter || '1'}L`)
+      localStorage.setItem('flatNo', customer.flat_no || '')
+      localStorage.setItem(
+        'remainingBalance',
+        `₹${customer.remaining_balance || 0}`
+      )
+
+      navigate('/dashboard')
     } catch (err) {
+      console.log('Login error:', err)
       setError('Server connection failed')
     }
 
@@ -94,18 +112,35 @@ export default function Login() {
                 animate={{ opacity: 1, y: 0 }}
                 className="glass-card rounded-[30px] p-5 mb-4 bg-white/8"
               >
-                <p className="text-white/50 text-xs mb-2 text-center">
+                <label className="block text-white/50 text-xs mb-2 text-center">
                   Registered Mobile Number
-                </p>
+                </label>
 
                 <input
-                  type="text"
+                  type="tel"
                   placeholder="Enter mobile number"
                   value={mobile}
                   maxLength={10}
-                  onChange={(e) => setMobile(e.target.value.replace(/\D/g, ''))}
-                  className="w-full bg-transparent outline-none text-lg text-center placeholder:text-white/35"
+                  inputMode="numeric"
+                  onChange={(e) => {
+                    setMobile(e.target.value.replace(/\D/g, ''))
+                    setError('')
+                  }}
+                  className="w-full rounded-2xl bg-white/10 border border-white/10 px-4 py-4 outline-none text-white text-center placeholder:text-white/35"
                   autoFocus
+                />
+
+                <input
+                  value={pin}
+                  onChange={(e) => {
+                    setPin(e.target.value.replace(/\D/g, ''))
+                    setError('')
+                  }}
+                  placeholder="Enter 6-digit PIN"
+                  type="password"
+                  inputMode="numeric"
+                  maxLength={6}
+                  className="w-full mt-4 rounded-2xl bg-white/10 border border-white/10 px-4 py-4 outline-none text-white text-center placeholder:text-white/35"
                 />
 
                 {error && (
@@ -125,7 +160,7 @@ export default function Login() {
                 }
               }}
               disabled={loading}
-              className="press w-full bg-[#D9FF57] shadow-[0_10px_40px_rgba(217,255,87,0.25)] text-black font-semibold text-[17px] p-4 rounded-[22px] flex items-center justify-center gap-2"
+              className="press w-full bg-[#D9FF57] shadow-[0_10px_40px_rgba(217,255,87,0.25)] text-black font-semibold text-[17px] p-4 rounded-[22px] flex items-center justify-center gap-2 disabled:opacity-60"
             >
               {loading ? 'Checking...' : showInput ? 'Login' : 'Get Started'}
               {!loading && <ArrowRight size={19} />}

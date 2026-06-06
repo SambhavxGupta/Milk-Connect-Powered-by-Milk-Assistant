@@ -159,6 +159,11 @@ def get_customer_info(mobile):
         headers,
         ["balance"]
     )
+    
+    pin_col = find_column(
+    headers,
+    ["login pin", "pin"]
+    )
 
     if mobile_col is None:
         return None
@@ -205,7 +210,12 @@ def get_customer_info(mobile):
                     row[balance_col].strip()
                     if balance_col is not None and len(row) > balance_col
                     else "0"
-                )
+                ),
+                "login_pin": (
+                    row[pin_col].strip()
+                    if pin_col is not None and len(row) > pin_col
+                    else ""
+                )   
             }
 
     return None
@@ -741,3 +751,37 @@ def get_payment_history(mobile):
     history.reverse()
 
     return history
+
+# =====================================================
+# LOGIN WITH PIN
+# =====================================================
+
+def verify_customer_login(mobile, pin):
+    customer = get_customer_info(mobile)
+
+    if not customer:
+        return {
+            "success": False,
+            "message": "❌ Customer not found.",
+        }
+
+    saved_pin = str(customer.get("login_pin", "")).strip()
+    entered_pin = str(pin or "").strip()
+
+    if not saved_pin:
+        return {
+            "success": False,
+            "message": "❌ Login PIN is not set for this customer. Please contact admin.",
+        }
+
+    if saved_pin != entered_pin:
+        return {
+            "success": False,
+            "message": "❌ Incorrect PIN.",
+        }
+
+    return {
+        "success": True,
+        "message": "✅ Login successful.",
+        "customer": customer,
+    }
