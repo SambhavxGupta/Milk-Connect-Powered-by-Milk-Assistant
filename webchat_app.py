@@ -14,6 +14,8 @@ from milk_service import (
     verify_customer_login,
     get_action_history,
     change_customer_pin,
+    verify_admin_pin,
+    get_admin_dashboard_data,
 )
 
 
@@ -291,6 +293,43 @@ def api_payment_history():
     return jsonify({
         "success": True,
         "history": history,
+    })
+
+@app.route("/api/admin-login", methods=["POST"])
+def api_admin_login():
+    data = request.json or {}
+
+    pin = data.get("pin")
+
+    if not verify_admin_pin(pin):
+        return jsonify({
+            "success": False,
+            "message": "❌ Incorrect admin PIN.",
+        })
+
+    return jsonify({
+        "success": True,
+        "message": "✅ Admin login successful.",
+    })
+
+
+@app.route("/api/admin-dashboard", methods=["POST"])
+def api_admin_dashboard():
+    data = request.json or {}
+
+    pin = data.get("pin")
+
+    if not verify_admin_pin(pin):
+        return jsonify({
+            "success": False,
+            "message": "❌ Unauthorized admin access.",
+        })
+
+    dashboard = get_admin_dashboard_data()
+
+    return jsonify({
+        "success": True,
+        "dashboard": dashboard,
     })
 
 if __name__ == "__main__":

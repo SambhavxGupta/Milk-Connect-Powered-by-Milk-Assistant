@@ -13,12 +13,16 @@ import Cart from './pages/Cart'
 import ProductDetail from './pages/ProductDetail'
 import History from './pages/History'
 import ChangePin from './pages/ChangePin'
+import AdminLogin from './pages/AdminLogin'
+import AdminDashboard from './pages/AdminDashboard'
 
 export default function App() {
   return (
     <BrowserRouter>
     <ToastProvider />
       <Routes>
+        <Route path="/admin-login" element={<AdminLogin />} />
+        <Route path="/admin-dashboard" element={<AdminDashboard />} />
         <Route path="/change-pin" element={<ChangePin />} />
         <Route path="/support" element={<Support />} />
         <Route path="/" element={<Splash />} />
