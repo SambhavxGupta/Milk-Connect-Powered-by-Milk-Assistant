@@ -1825,3 +1825,96 @@ def create_main_sheet_backup():
             "success": False,
             "message": "❌ Backup failed. Please try again.",
         }
+        
+        
+        
+        # =====================================================
+# AUTOMATIC DAILY BACKUP
+# =====================================================
+
+def create_daily_backup_if_needed():
+    try:
+        source_sheet = sheet
+        source_title = source_sheet.title
+
+        today_text = datetime.now().strftime("%Y-%m-%d")
+        timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M")
+
+        backup_prefix = f"AutoBackup_{source_title}_{today_text}"
+
+        existing_sheet_titles = [
+            worksheet.title
+            for worksheet in spreadsheet.worksheets()
+        ]
+
+        already_exists = any(
+            title.startswith(backup_prefix)
+            for title in existing_sheet_titles
+        )
+
+        if already_exists:
+            return {
+                "success": True,
+                "created": False,
+                "message": "✅ Daily backup already exists.",
+            }
+
+        values = source_sheet.get_all_values()
+
+        if not values:
+            return {
+                "success": False,
+                "created": False,
+                "message": "❌ No data found to backup.",
+            }
+
+        backup_title = f"AutoBackup_{source_title}_{timestamp}"
+
+        if len(backup_title) > 90:
+            backup_title = backup_title[:90]
+
+        row_count = max(len(values) + 10, 100)
+        col_count = max(max(len(row) for row in values) + 5, 20)
+
+        backup_sheet = spreadsheet.add_worksheet(
+            title=backup_title,
+            rows=row_count,
+            cols=col_count,
+        )
+
+        backup_sheet.update("A1", values)
+
+        backup_sheet.format("A1:Z1", {
+            "textFormat": {"bold": True},
+            "backgroundColor": {"red": 0.85, "green": 1, "blue": 0.35},
+        })
+
+        append_admin_audit_log(
+            action="AUTO_DAILY_BACKUP_CREATED",
+            details=f"Automatic daily backup created: {backup_title}",
+            ip_address="server",
+            status="Success",
+        )
+
+        return {
+            "success": True,
+            "created": True,
+            "message": f"✅ Automatic daily backup created: {backup_title}",
+            "backup_name": backup_title,
+        }
+
+    except Exception as e:
+        print("Automatic daily backup failed:", e)
+
+        append_admin_audit_log(
+            action="AUTO_DAILY_BACKUP_FAILED",
+            details=str(e),
+            ip_address="server",
+            status="Failed",
+        )
+
+        return {
+            "success": False,
+            "created": False,
+            "message": "❌ Automatic daily backup failed.",
+        }

@@ -25,6 +25,7 @@ from milk_service import (
     verify_admin_token,
     append_admin_audit_log,
     create_main_sheet_backup,
+    create_daily_backup_if_needed,
 )
 
 app = Flask(__name__)
@@ -633,6 +634,52 @@ def api_change_pin():
 # ADMIN
 # =====================================================
 
+@app.route("/api/admin-dashboard", methods=["POST"])
+def api_admin_dashboard():
+    data = request.json or {}
+
+    auth_error = require_admin_auth(data)
+    if auth_error:
+        return auth_error
+
+    try:
+        backup_result = create_daily_backup_if_needed()
+
+        if backup_result.get("created"):
+            append_admin_audit_log(
+                action="AUTO_BACKUP_TRIGGERED_FROM_DASHBOARD",
+                details=backup_result.get("message", ""),
+                ip_address=get_client_ip(),
+                status="Success",
+            )
+
+    except Exception as e:
+        print("Auto backup skipped because of error:", e)
+
+        try:
+            append_admin_audit_log(
+                action="AUTO_BACKUP_SKIPPED_ERROR",
+                details=str(e),
+                ip_address=get_client_ip(),
+                status="Failed",
+            )
+        except Exception as log_error:
+            print("Auto backup error log failed:", log_error)
+
+    dashboard = get_admin_dashboard_data()
+
+    append_admin_audit_log(
+        action="ADMIN_DASHBOARD_OPENED",
+        details="Admin dashboard data loaded",
+        ip_address=get_client_ip(),
+        status="Success",
+    )
+
+    return jsonify({
+        "success": True,
+        "dashboard": dashboard,
+    })
+
 @app.route("/api/admin-create-backup", methods=["POST"])
 def api_admin_create_backup():
     data = request.json or {}
@@ -725,30 +772,6 @@ def api_admin_login():
         "message": "✅ Admin login successful.",
         "admin_token": create_admin_token(),
     })
-
-
-@app.route("/api/admin-dashboard", methods=["POST"])
-def api_admin_dashboard():
-    data = request.json or {}
-
-    auth_error = require_admin_auth(data)
-    if auth_error:
-        return auth_error
-
-    dashboard = get_admin_dashboard_data()
-
-    append_admin_audit_log(
-        action="ADMIN_DASHBOARD_OPENED",
-        details="Admin dashboard data loaded",
-        ip_address=get_client_ip(),
-        status="Success",
-    )
-
-    return jsonify({
-        "success": True,
-        "dashboard": dashboard,
-    })
-
 
 @app.route("/api/admin-payment-status", methods=["POST"])
 def api_admin_payment_status():
