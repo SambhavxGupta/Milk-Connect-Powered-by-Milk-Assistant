@@ -1696,3 +1696,62 @@ def verify_admin_token(token):
     return {
         "success": True,
     }
+    
+# =====================================================
+# ADMIN AUDIT LOGS
+# =====================================================
+
+ADMIN_AUDIT_SHEET_NAME = "Admin_Audit_Logs"
+
+ADMIN_AUDIT_HEADERS = [
+    "Timestamp",
+    "Action",
+    "Details",
+    "IP Address",
+    "Status",
+]
+
+
+def get_admin_audit_sheet():
+    try:
+        audit_sheet = spreadsheet.worksheet(ADMIN_AUDIT_SHEET_NAME)
+    except gspread.WorksheetNotFound:
+        audit_sheet = spreadsheet.add_worksheet(
+            title=ADMIN_AUDIT_SHEET_NAME,
+            rows=1000,
+            cols=len(ADMIN_AUDIT_HEADERS),
+        )
+
+        audit_sheet.append_row(ADMIN_AUDIT_HEADERS)
+
+        audit_sheet.format("A1:E1", {
+            "textFormat": {"bold": True},
+            "backgroundColor": {"red": 0.85, "green": 1, "blue": 0.35},
+        })
+
+    headers = audit_sheet.row_values(1)
+
+    if headers != ADMIN_AUDIT_HEADERS:
+        audit_sheet.update("A1:E1", [ADMIN_AUDIT_HEADERS])
+
+    return audit_sheet
+
+
+def append_admin_audit_log(action, details="", ip_address="", status="Success"):
+    try:
+        audit_sheet = get_admin_audit_sheet()
+
+        timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+        audit_sheet.append_row([
+            timestamp,
+            action,
+            details,
+            ip_address,
+            status,
+        ])
+
+        return True
+    except Exception as e:
+        print("Admin audit log failed:", e)
+        return False

@@ -227,6 +227,21 @@ localStorage.removeItem('adminToken')
     return messageLines.join('\n')
   }
 
+async function logAdminAction(action, details = '') {
+  try {
+    await fetch(`${API_BASE}/api/admin-audit-log`, {
+      method: 'POST',
+      headers: getAdminHeaders(),
+      body: JSON.stringify({
+        action,
+        details,
+      }),
+    })
+  } catch (err) {
+    console.log('Admin audit log failed', err)
+  }
+}
+
   async function copyTomorrowDeliveryList() {
     const message = getDeliveryMessage()
 
@@ -238,25 +253,35 @@ localStorage.removeItem('adminToken')
     try {
       await navigator.clipboard.writeText(message)
       showToast('Delivery message copied', 'success')
+
+      await logAdminAction(
+  'DELIVERY_MESSAGE_COPIED',
+  `Delivery message copied for ${tomorrow?.tomorrow_date || 'tomorrow'}`
+)
     } catch (err) {
       showToast('Could not copy delivery message', 'error')
     }
   }
 
-  function openDeliveryWhatsApp() {
-    const message = getDeliveryMessage()
+  async function openDeliveryWhatsApp() {
+  const message = getDeliveryMessage()
 
-    if (!message) {
-      showToast('No delivery message found', 'warning')
-      return
-    }
-
-    const whatsappUrl = `https://wa.me/${DELIVERY_BOY_WHATSAPP}?text=${encodeURIComponent(
-      message
-    )}`
-
-    window.open(whatsappUrl, '_blank')
+  if (!message) {
+    showToast('No delivery message found', 'warning')
+    return
   }
+
+  const whatsappUrl = `https://wa.me/${DELIVERY_BOY_WHATSAPP}?text=${encodeURIComponent(
+    message
+  )}`
+
+  await logAdminAction(
+    'DELIVERY_WHATSAPP_OPENED',
+    `WhatsApp delivery message opened for ${tomorrow?.tomorrow_date || 'tomorrow'}`
+  )
+
+  window.open(whatsappUrl, '_blank')
+}
 
   return (
     <div className="min-h-screen bg-[#E9EDF2] flex justify-center items-center px-3 py-4">

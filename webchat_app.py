@@ -21,6 +21,7 @@ from milk_service import (
     verify_customer_token,
     create_admin_token,
     verify_admin_token,
+    append_admin_audit_log,
 )
 
 app = Flask(__name__)
@@ -486,6 +487,29 @@ def api_change_pin():
 # ADMIN
 # =====================================================
 
+@app.route("/api/admin-audit-log", methods=["POST"])
+def api_admin_audit_log():
+    data = request.json or {}
+
+    auth_error = require_admin_auth(data)
+    if auth_error:
+        return auth_error
+
+    action = data.get("action", "ADMIN_ACTION")
+    details = data.get("details", "")
+
+    append_admin_audit_log(
+        action=action,
+        details=details,
+        ip_address=get_client_ip(),
+        status="Success",
+    )
+
+    return jsonify({
+        "success": True,
+        "message": "✅ Admin action logged.",
+    })
+
 @app.route("/api/admin-login", methods=["POST"])
 def api_admin_login():
     data = request.json or {}
@@ -505,6 +529,14 @@ def api_admin_login():
 
     if not verify_admin_pin(pin):
         fail = register_failed_attempt(admin_key)
+        
+        append_admin_audit_log(
+        action="ADMIN_LOGIN_FAILED",
+        details="Incorrect admin PIN entered",
+        ip_address=client_ip,
+        status="Failed",
+    )
+
 
         return jsonify({
             "success": False,
@@ -512,6 +544,13 @@ def api_admin_login():
         })
 
     clear_failed_attempts(admin_key)
+    
+    append_admin_audit_log(
+    action="ADMIN_LOGIN_SUCCESS",
+    details="Admin logged in successfully",
+    ip_address=client_ip,
+    status="Success",
+)
 
     return jsonify({
         "success": True,
@@ -529,6 +568,13 @@ def api_admin_dashboard():
         return auth_error
 
     dashboard = get_admin_dashboard_data()
+
+    append_admin_audit_log(
+        action="ADMIN_DASHBOARD_OPENED",
+        details="Admin dashboard data loaded",
+        ip_address=get_client_ip(),
+        status="Success",
+    )
 
     return jsonify({
         "success": True,
@@ -551,6 +597,12 @@ def api_admin_payment_status():
         row_number=row,
         status=status,
     )
+    append_admin_audit_log(
+    action="ADMIN_PAYMENT_STATUS_UPDATE",
+    details=f"Payment row {row} marked as {status}",
+    ip_address=get_client_ip(),
+    status="Success" if result.get("success") else "Failed",
+)
 
     return jsonify(result)
 
