@@ -1,6 +1,7 @@
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 import os
+import time
 
 from milk_service import (
     handle_pause,
@@ -39,6 +40,92 @@ CORS(
         }
     },
 )
+
+# =====================================================
+# RATE LIMIT / LOCKOUT SECURITY
+# =====================================================
+
+FAILED_ATTEMPTS = {}
+
+MAX_FAILED_ATTEMPTS = 5
+LOCK_TIME_SECONDS = 10 * 60
+ATTEMPT_WINDOW_SECONDS = 10 * 60
+
+
+def get_client_ip():
+    forwarded_for = request.headers.get("X-Forwarded-For", "")
+    if forwarded_for:
+        return forwarded_for.split(",")[0].strip()
+
+    return request.remote_addr or "unknown"
+
+
+def get_attempt_record(key):
+    now = time.time()
+
+    record = FAILED_ATTEMPTS.get(key)
+
+    if not record:
+        record = {
+            "count": 0,
+            "first_attempt": now,
+            "locked_until": 0,
+        }
+
+        FAILED_ATTEMPTS[key] = record
+
+    if now - record["first_attempt"] > ATTEMPT_WINDOW_SECONDS:
+        record["count"] = 0
+        record["first_attempt"] = now
+        record["locked_until"] = 0
+
+    return record
+
+
+def check_rate_limit(key):
+    now = time.time()
+    record = get_attempt_record(key)
+
+    if record["locked_until"] > now:
+        remaining_seconds = int(record["locked_until"] - now)
+        remaining_minutes = max(1, remaining_seconds // 60)
+
+        return {
+            "allowed": False,
+            "message": f"🔒 Too many failed attempts. Try again in {remaining_minutes} minute(s).",
+        }
+
+    return {
+        "allowed": True,
+        "message": "",
+    }
+
+
+def register_failed_attempt(key):
+    now = time.time()
+    record = get_attempt_record(key)
+
+    record["count"] += 1
+
+    if record["count"] >= MAX_FAILED_ATTEMPTS:
+        record["locked_until"] = now + LOCK_TIME_SECONDS
+
+        return {
+            "locked": True,
+            "message": "🔒 Too many failed attempts. This login is locked for 10 minutes.",
+        }
+
+    attempts_left = MAX_FAILED_ATTEMPTS - record["count"]
+
+    return {
+        "locked": False,
+        "message": f"❌ Incorrect details. {attempts_left} attempt(s) left.",
+    }
+
+
+def clear_failed_attempts(key):
+    if key in FAILED_ATTEMPTS:
+        del FAILED_ATTEMPTS[key]
 
 @app.after_request
 def add_security_headers(response):
@@ -89,16 +176,41 @@ def home():
 def api_login():
     data = request.json or {}
 
-    mobile = data.get("mobile")
-    pin = data.get("pin")
+    mobile = str(data.get("mobile", "")).strip()
+    pin = str(data.get("pin", "")).strip()
+
+    client_ip = get_client_ip()
+    mobile_key = f"customer-login-mobile:{mobile}"
+    ip_key = f"customer-login-ip:{client_ip}"
+
+    mobile_limit = check_rate_limit(mobile_key)
+    ip_limit = check_rate_limit(ip_key)
+
+    if not mobile_limit["allowed"]:
+        return jsonify({
+            "success": False,
+            "message": mobile_limit["message"],
+        }), 429
+
+    if not ip_limit["allowed"]:
+        return jsonify({
+            "success": False,
+            "message": ip_limit["message"],
+        }), 429
 
     result = verify_customer_login(mobile, pin)
 
     if not result["success"]:
+        mobile_fail = register_failed_attempt(mobile_key)
+        ip_fail = register_failed_attempt(ip_key)
+
         return jsonify({
             "success": False,
-            "message": result["message"],
+            "message": mobile_fail["message"] or ip_fail["message"] or result["message"],
         })
+
+    clear_failed_attempts(mobile_key)
+    clear_failed_attempts(ip_key)
 
     customer = result["customer"]
 
@@ -305,15 +417,36 @@ def api_change_pin():
     if auth_error:
         return auth_error
 
-    mobile = data.get("mobile")
+    mobile = str(data.get("mobile", "")).strip()
     current_pin = data.get("current_pin")
     new_pin = data.get("new_pin")
+
+    change_pin_key = f"change-pin:{mobile}"
+
+    limit = check_rate_limit(change_pin_key)
+
+    if not limit["allowed"]:
+        return jsonify({
+            "success": False,
+            "message": limit["message"],
+        }), 429
 
     result = change_customer_pin(
         mobile=mobile,
         current_pin=current_pin,
         new_pin=new_pin,
     )
+
+    if not result["success"] and "Current PIN is incorrect" in result.get("message", ""):
+        fail = register_failed_attempt(change_pin_key)
+
+        return jsonify({
+            "success": False,
+            "message": fail["message"],
+        })
+
+    if result["success"]:
+        clear_failed_attempts(change_pin_key)
 
     return jsonify(result)
 
@@ -326,13 +459,28 @@ def api_change_pin():
 def api_admin_login():
     data = request.json or {}
 
-    pin = data.get("pin")
+    pin = str(data.get("pin", "")).strip()
 
-    if not verify_admin_pin(pin):
+    client_ip = get_client_ip()
+    admin_key = f"admin-login-ip:{client_ip}"
+
+    limit = check_rate_limit(admin_key)
+
+    if not limit["allowed"]:
         return jsonify({
             "success": False,
-            "message": "❌ Incorrect admin PIN.",
+            "message": limit["message"],
+        }), 429
+
+    if not verify_admin_pin(pin):
+        fail = register_failed_attempt(admin_key)
+
+        return jsonify({
+            "success": False,
+            "message": fail["message"],
         })
+
+    clear_failed_attempts(admin_key)
 
     return jsonify({
         "success": True,
