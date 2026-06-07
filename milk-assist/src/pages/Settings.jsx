@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { motion } from 'framer-motion'
 import {
   ChevronRight,
   Headphones,
@@ -14,6 +15,33 @@ import { useNavigate } from 'react-router-dom'
 import FloatingBottomNav from '../components/FloatingBottomNav'
 import BackButton from '../components/BackButton'
 import { showToast } from '../utils/toast'
+
+const containerVariants = {
+  hidden: { opacity: 0 },
+  show: {
+    opacity: 1,
+    transition: {
+      staggerChildren: 0.085,
+    },
+  },
+}
+
+const itemVariants = {
+  hidden: {
+    opacity: 0,
+    y: 18,
+    scale: 0.98,
+  },
+  show: {
+    opacity: 1,
+    y: 0,
+    scale: 1,
+    transition: {
+      duration: 0.45,
+      ease: 'easeOut',
+    },
+  },
+}
 
 export default function Settings() {
   const navigate = useNavigate()
@@ -63,7 +91,7 @@ export default function Settings() {
     },
     {
       title: 'Change PIN',
-      subtitle: 'Update your secure 6-digit login PIN',
+      subtitle: 'Update your encrypted 6-digit login PIN',
       icon: <LockKeyhole size={20} />,
       onClick: () => navigate('/change-pin'),
     },
@@ -89,9 +117,20 @@ export default function Settings() {
 
   return (
     <div className="min-h-screen bg-[#E9EDF2] flex justify-center items-start py-6">
-      <div className="phone-shell">
-        <div className="h-full overflow-y-auto px-5 pt-8 pb-32 custom-scrollbar">
-          <div className="flex items-center justify-between mb-7">
+      <div className="phone-shell relative overflow-hidden">
+        <div className="luxury-glow-orb w-56 h-56 bg-[#D9FF57] top-[-80px] right-[-90px]" />
+        <div className="luxury-glow-orb w-52 h-52 bg-blue-400 bottom-[-90px] left-[-90px]" />
+
+        <motion.div
+          variants={containerVariants}
+          initial="hidden"
+          animate="show"
+          className="relative z-10 h-full overflow-y-auto px-5 pt-8 pb-32 custom-scrollbar"
+        >
+          <motion.div
+            variants={itemVariants}
+            className="flex items-center justify-between mb-7"
+          >
             <BackButton />
 
             <div className="text-center">
@@ -100,16 +139,33 @@ export default function Settings() {
             </div>
 
             <div className="w-11" />
-          </div>
+          </motion.div>
 
-          <div className="glass-card rounded-[34px] p-5 mb-5 relative overflow-hidden">
+          <motion.div
+            variants={itemVariants}
+            className="glass-card neon-edge soft-shine rounded-[34px] p-5 mb-5 relative overflow-hidden"
+          >
             <div className="absolute -top-14 -right-14 w-32 h-32 bg-[#D9FF57]/10 blur-3xl rounded-full" />
 
             <div className="relative z-10">
               <div className="flex items-center gap-4">
-                <div className="w-16 h-16 rounded-[26px] bg-[#D9FF57] text-[#1F2430] flex items-center justify-center">
+                <motion.div
+                  animate={{
+                    boxShadow: [
+                      '0 0 0 rgba(217,255,87,0)',
+                      '0 0 34px rgba(217,255,87,0.35)',
+                      '0 0 0 rgba(217,255,87,0)',
+                    ],
+                  }}
+                  transition={{
+                    duration: 2.8,
+                    repeat: Infinity,
+                    ease: 'easeInOut',
+                  }}
+                  className="w-16 h-16 rounded-[26px] bg-[#D9FF57] text-[#1F2430] flex items-center justify-center floating-icon"
+                >
                   <User size={30} />
-                </div>
+                </motion.div>
 
                 <div>
                   <p className="text-white/45 text-xs">Logged in as</p>
@@ -129,14 +185,22 @@ export default function Settings() {
                 <ShieldCheck size={26} className="text-[#D9FF57]" />
               </div>
             </div>
-          </div>
+          </motion.div>
+
+          <motion.div variants={itemVariants} className="premium-divider mb-5" />
 
           <div className="space-y-3 mb-5">
-            {settingItems.map((item) => (
-              <button
+            {settingItems.map((item, index) => (
+              <motion.button
                 key={item.title}
+                variants={itemVariants}
+                whileHover={{ scale: 1.015 }}
+                whileTap={{ scale: 0.965 }}
                 onClick={item.onClick}
-                className="w-full glass-card rounded-[26px] p-4 flex items-center justify-between gap-4 press"
+                className="w-full glass-card rounded-[26px] p-4 flex items-center justify-between gap-4 tap-scale"
+                style={{
+                  animationDelay: `${index * 70}ms`,
+                }}
               >
                 <div className="flex items-center gap-4 text-left">
                   <div className="w-12 h-12 rounded-2xl bg-[#D9FF57]/10 border border-[#D9FF57]/25 flex items-center justify-center text-[#D9FF57]">
@@ -152,11 +216,14 @@ export default function Settings() {
                 </div>
 
                 <ChevronRight size={18} className="text-white/35 shrink-0" />
-              </button>
+              </motion.button>
             ))}
           </div>
 
-          <div className="glass-card rounded-[28px] p-5 mb-5">
+          <motion.div
+            variants={itemVariants}
+            className="glass-card rounded-[28px] p-5 mb-5"
+          >
             <div className="flex items-start gap-3">
               <div className="w-11 h-11 rounded-2xl bg-[#D9FF57]/10 border border-[#D9FF57]/25 flex items-center justify-center shrink-0">
                 <Info size={20} className="text-[#D9FF57]" />
@@ -170,21 +237,23 @@ export default function Settings() {
                   support.
                 </p>
 
-                <p className="text-white/30 text-xs mt-3">
+                <p className="text-[#D9FF57]/70 text-xs mt-3">
                   Powered by Milk Assist
                 </p>
               </div>
             </div>
-          </div>
+          </motion.div>
 
-          <button
+          <motion.button
+            variants={itemVariants}
+            whileTap={{ scale: 0.965 }}
             onClick={logout}
-            className="w-full bg-red-400/15 border border-red-300/30 text-red-200 font-bold p-4 rounded-2xl flex items-center justify-center gap-2 press"
+            className="w-full bg-red-400/15 border border-red-300/30 text-red-200 font-bold p-4 rounded-2xl flex items-center justify-center gap-2 tap-scale"
           >
             <LogOut size={18} />
             Logout
-          </button>
-        </div>
+          </motion.button>
+        </motion.div>
 
         <FloatingBottomNav />
       </div>

@@ -284,3 +284,162 @@ input::placeholder {
     opacity: 1;
   }
 }
+
+
+
+
+
+
+
+
+#towards polishing the app#
+
+
+
+
+/* =====================================================
+   PREMIUM MOTION + UI POLISH
+===================================================== */
+
+.premium-page-enter {
+  animation: premium-page-enter 0.55s ease both;
+}
+
+@keyframes premium-page-enter {
+  from {
+    opacity: 0;
+    transform: translateY(18px) scale(0.985);
+    filter: blur(6px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+    filter: blur(0);
+  }
+}
+
+.premium-card-rise {
+  animation: premium-card-rise 0.65s ease both;
+}
+
+@keyframes premium-card-rise {
+  from {
+    opacity: 0;
+    transform: translateY(18px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.luxury-glow-orb {
+  position: absolute;
+  border-radius: 999px;
+  pointer-events: none;
+  filter: blur(70px);
+  opacity: 0.28;
+  animation: luxury-orb-float 7s ease-in-out infinite alternate;
+}
+
+@keyframes luxury-orb-float {
+  from {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+
+  to {
+    transform: translate3d(-14px, 18px, 0) scale(1.12);
+  }
+}
+
+.neon-edge {
+  position: relative;
+  overflow: hidden;
+}
+
+.neon-edge::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 1px;
+  background: linear-gradient(
+    135deg,
+    rgba(217, 255, 87, 0.75),
+    rgba(255, 255, 255, 0.08),
+    rgba(217, 255, 87, 0.35)
+  );
+  -webkit-mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+}
+
+.soft-shine {
+  position: relative;
+  overflow: hidden;
+}
+
+.soft-shine::before {
+  content: "";
+  position: absolute;
+  top: -120%;
+  left: -80%;
+  width: 80%;
+  height: 300%;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.13),
+    transparent
+  );
+  transform: rotate(22deg);
+  animation: soft-shine-move 4.8s ease-in-out infinite;
+}
+
+@keyframes soft-shine-move {
+  0%, 45% {
+    transform: translateX(-120%) rotate(22deg);
+  }
+
+  100% {
+    transform: translateX(360%) rotate(22deg);
+  }
+}
+
+.tap-scale {
+  transition: transform 0.18s ease, filter 0.18s ease;
+}
+
+.tap-scale:active {
+  transform: scale(0.965);
+  filter: brightness(1.08);
+}
+
+.floating-icon {
+  animation: floating-icon 2.7s ease-in-out infinite;
+}
+
+@keyframes floating-icon {
+  0%, 100% {
+    transform: translateY(0);
+  }
+
+  50% {
+    transform: translateY(-5px);
+  }
+}
+
+.premium-divider {
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(217, 255, 87, 0.35),
+    transparent
+  );
+}
