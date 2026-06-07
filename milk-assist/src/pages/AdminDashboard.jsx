@@ -1,8 +1,10 @@
 import { useEffect, useState } from 'react'
+import { motion } from 'framer-motion'
 import {
   ArrowLeft,
   CheckCircle,
   Copy,
+  DatabaseBackup,
   IndianRupee,
   LogOut,
   MessageCircle,
@@ -13,7 +15,6 @@ import {
   ShieldCheck,
   Truck,
   Users,
-  DatabaseBackup,
   Wallet,
 } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
@@ -27,6 +28,24 @@ const API_BASE = ['localhost', '127.0.0.1'].includes(window.location.hostname)
 const DELIVERY_BOY_WHATSAPP = '917022790646'
 const EXTRA_MILK = 0.5
 
+const containerVariants = {
+  hidden: { opacity: 0 },
+  show: {
+    opacity: 1,
+    transition: { staggerChildren: 0.075 },
+  },
+}
+
+const itemVariants = {
+  hidden: { opacity: 0, y: 16, scale: 0.985 },
+  show: {
+    opacity: 1,
+    y: 0,
+    scale: 1,
+    transition: { duration: 0.42, ease: 'easeOut' },
+  },
+}
+
 export default function AdminDashboard() {
   const navigate = useNavigate()
   const adminToken = sessionStorage.getItem('adminToken')
@@ -34,6 +53,7 @@ export default function AdminDashboard() {
   const [dashboard, setDashboard] = useState(null)
   const [loading, setLoading] = useState(true)
   const [customerSearch, setCustomerSearch] = useState('')
+  const [backupLoading, setBackupLoading] = useState(false)
 
   const tomorrow = dashboard?.tomorrow_delivery
   const pendingPayments = dashboard?.pending_payments || []
@@ -49,11 +69,7 @@ export default function AdminDashboard() {
     const flat = String(customer.flat_no || '').toLowerCase()
     const mobile = String(customer.mobile || '').toLowerCase()
 
-    return (
-      name.includes(search) ||
-      flat.includes(search) ||
-      mobile.includes(search)
-    )
+    return name.includes(search) || flat.includes(search) || mobile.includes(search)
   })
 
   useEffect(() => {
@@ -77,7 +93,7 @@ export default function AdminDashboard() {
 
       const data = await res.json()
 
-      if (!data.success) {
+      if (!res.ok || !data.success) {
         showToast(data.message || 'Unauthorized admin access', 'error')
         localStorage.removeItem('adminPin')
         localStorage.removeItem('adminToken')
@@ -89,9 +105,9 @@ export default function AdminDashboard() {
       setDashboard(data.dashboard)
     } catch (err) {
       showToast('Admin dashboard load failed', 'error')
+    } finally {
+      setLoading(false)
     }
-
-    setLoading(false)
   }
 
   async function updatePaymentStatus(row, status) {
@@ -102,9 +118,9 @@ export default function AdminDashboard() {
         method: 'POST',
         headers: getAdminHeaders(),
         body: JSON.stringify({
-  row,
-  status,
-}),
+          row,
+          status,
+        }),
       })
 
       const data = await res.json()
@@ -119,29 +135,31 @@ export default function AdminDashboard() {
     }
   }
 
-
   async function createBackup() {
-  if (!adminToken) return
+    if (!adminToken || backupLoading) return
 
-  try {
-    const res = await fetch(`${API_BASE}/api/admin-create-backup`, {
-      method: 'POST',
-      headers: getAdminHeaders(),
-      body: JSON.stringify({}),
-    })
+    setBackupLoading(true)
 
-    const data = await res.json()
+    try {
+      const res = await fetch(`${API_BASE}/api/admin-create-backup`, {
+        method: 'POST',
+        headers: getAdminHeaders(),
+        body: JSON.stringify({}),
+      })
 
-    showToast(data.message, data.success ? 'success' : 'warning')
+      const data = await res.json()
 
-    if (data.success) {
-      await loadDashboard()
+      showToast(data.message, data.success ? 'success' : 'warning')
+
+      if (data.success) {
+        await loadDashboard()
+      }
+    } catch (err) {
+      showToast('Backup failed. Please try again.', 'error')
+    } finally {
+      setBackupLoading(false)
     }
-  } catch (err) {
-    showToast('Backup failed. Please try again.', 'error')
   }
-}
-
 
   function logoutAdmin() {
     localStorage.removeItem('adminPin')
@@ -154,7 +172,6 @@ export default function AdminDashboard() {
     const number = Number(value)
 
     if (Number.isNaN(number)) return '0'
-
     if (Number.isInteger(number)) return String(number)
 
     return String(number).replace(/\.0$/, '')
@@ -211,7 +228,6 @@ export default function AdminDashboard() {
     )
 
     const totalMilk = regentTotal + hydeTotal
-
     const dateParts = String(tomorrow.tomorrow_date || '').split('-')
 
     const dateObject =
@@ -255,20 +271,20 @@ export default function AdminDashboard() {
     return messageLines.join('\n')
   }
 
-async function logAdminAction(action, details = '') {
-  try {
-    await fetch(`${API_BASE}/api/admin-audit-log`, {
-      method: 'POST',
-      headers: getAdminHeaders(),
-      body: JSON.stringify({
-        action,
-        details,
-      }),
-    })
-  } catch (err) {
-    console.log('Admin audit log failed', err)
+  async function logAdminAction(action, details = '') {
+    try {
+      await fetch(`${API_BASE}/api/admin-audit-log`, {
+        method: 'POST',
+        headers: getAdminHeaders(),
+        body: JSON.stringify({
+          action,
+          details,
+        }),
+      })
+    } catch (err) {
+      console.log('Admin audit log failed', err)
+    }
   }
-}
 
   async function copyTomorrowDeliveryList() {
     const message = getDeliveryMessage()
@@ -283,43 +299,54 @@ async function logAdminAction(action, details = '') {
       showToast('Delivery message copied', 'success')
 
       await logAdminAction(
-  'DELIVERY_MESSAGE_COPIED',
-  `Delivery message copied for ${tomorrow?.tomorrow_date || 'tomorrow'}`
-)
+        'DELIVERY_MESSAGE_COPIED',
+        `Delivery message copied for ${tomorrow?.tomorrow_date || 'tomorrow'}`
+      )
     } catch (err) {
       showToast('Could not copy delivery message', 'error')
     }
   }
 
   async function openDeliveryWhatsApp() {
-  const message = getDeliveryMessage()
+    const message = getDeliveryMessage()
 
-  if (!message) {
-    showToast('No delivery message found', 'warning')
-    return
+    if (!message) {
+      showToast('No delivery message found', 'warning')
+      return
+    }
+
+    const whatsappUrl = `https://wa.me/${DELIVERY_BOY_WHATSAPP}?text=${encodeURIComponent(
+      message
+    )}`
+
+    await logAdminAction(
+      'DELIVERY_WHATSAPP_OPENED',
+      `WhatsApp delivery message opened for ${tomorrow?.tomorrow_date || 'tomorrow'}`
+    )
+
+    window.open(whatsappUrl, '_blank')
   }
 
-  const whatsappUrl = `https://wa.me/${DELIVERY_BOY_WHATSAPP}?text=${encodeURIComponent(
-    message
-  )}`
-
-  await logAdminAction(
-    'DELIVERY_WHATSAPP_OPENED',
-    `WhatsApp delivery message opened for ${tomorrow?.tomorrow_date || 'tomorrow'}`
-  )
-
-  window.open(whatsappUrl, '_blank')
-}
-
   return (
-    <div className="min-h-screen bg-[#E9EDF2] flex justify-center items-center px-3 py-4">
-      <div className="phone-shell">
-        <div className="h-full overflow-y-auto px-5 pt-8 pb-10 custom-scrollbar">
-          <div className="flex items-center justify-between mb-7">
+    <div className="min-h-screen bg-[#E9EDF2] flex justify-center items-start py-6">
+      <div className="phone-shell relative overflow-hidden">
+        <div className="luxury-glow-orb w-60 h-60 bg-[#D9FF57] top-[-100px] right-[-110px]" />
+        <div className="luxury-glow-orb w-52 h-52 bg-blue-400 bottom-[-100px] left-[-90px]" />
+
+        <motion.div
+          variants={containerVariants}
+          initial="hidden"
+          animate="show"
+          className="relative z-10 h-full overflow-y-auto px-5 pt-8 pb-10 custom-scrollbar"
+        >
+          <motion.div
+            variants={itemVariants}
+            className="flex items-center justify-between mb-7 gap-3"
+          >
             <div className="flex items-center gap-3">
               <button
                 onClick={() => navigate('/admin-login')}
-                className="w-10 h-10 rounded-2xl bg-white/10 border border-white/10 flex items-center justify-center press"
+                className="w-10 h-10 rounded-2xl bg-white/10 border border-white/10 flex items-center justify-center tap-scale"
               >
                 <ArrowLeft size={18} />
               </button>
@@ -333,74 +360,99 @@ async function logAdminAction(action, details = '') {
                 <p className="text-white/40 text-xs">Vendor dashboard</p>
               </div>
             </div>
-                <button
-                  onClick={createBackup}
-                  className="w-10 h-10 rounded-2xl bg-[#D9FF57]/15 border border-[#D9FF57]/30 flex items-center justify-center press"
-                >
-                  <DatabaseBackup size={18} className="text-[#D9FF57]" />
-                </button>
-            <div className="flex items-center gap-2">
-              <button
-                onClick={loadDashboard}
-                className="w-10 h-10 rounded-2xl bg-white/10 border border-white/10 flex items-center justify-center press"
-              >
-                <RefreshCw size={18} />
-              </button>
 
-              <button
+            <div className="flex items-center gap-2">
+              <IconButton
+                onClick={createBackup}
+                icon={
+                  <DatabaseBackup
+                    size={18}
+                    className={backupLoading ? 'animate-spin' : ''}
+                  />
+                }
+                active
+              />
+
+              <IconButton
+                onClick={loadDashboard}
+                icon={<RefreshCw size={18} />}
+              />
+
+              <IconButton
                 onClick={logoutAdmin}
-                className="w-10 h-10 rounded-2xl bg-white/10 border border-white/10 flex items-center justify-center press"
-              >
-                <LogOut size={18} />
-              </button>
+                icon={<LogOut size={18} />}
+              />
             </div>
-          </div>
+          </motion.div>
 
           {loading ? (
-            <div className="glass-card rounded-[30px] p-5">
+            <motion.div
+              variants={itemVariants}
+              className="glass-card rounded-[30px] p-5"
+            >
               <p className="text-white/50 text-sm">Loading admin dashboard...</p>
-            </div>
+            </motion.div>
           ) : (
             <>
-              <div className="glass-card rounded-[34px] p-5 mb-5 relative overflow-hidden">
-                <div className="absolute -top-16 -right-16 w-36 h-36 bg-[#D9FF57]/10 blur-3xl rounded-full" />
+              <motion.div
+                variants={itemVariants}
+                className="glass-card neon-edge soft-shine rounded-[36px] p-6 mb-5 relative overflow-hidden"
+              >
+                <div className="absolute -top-16 -right-16 w-40 h-40 bg-[#D9FF57]/10 blur-3xl rounded-full" />
 
                 <div className="relative z-10">
-                  <p className="text-white/50 text-sm">Tomorrow Delivery</p>
-
-                  <div className="flex items-end justify-between mt-2">
+                  <div className="flex items-center justify-between gap-4">
                     <div>
-                      <h2 className="text-5xl font-bold text-[#D9FF57]">
+                      <p className="text-white/45 text-sm">Tomorrow Delivery</p>
+
+                      <h2 className="text-6xl font-black text-[#D9FF57] mt-2 leading-none">
                         {tomorrow?.total_milk || 0}L
                       </h2>
 
-                      <p className="text-white/45 text-sm mt-2">
+                      <p className="text-white/45 text-sm mt-3">
                         Date: {tomorrow?.tomorrow_date || '-'}
                       </p>
                     </div>
 
-                    <Truck size={42} className="text-[#D9FF57]" />
+                    <motion.div
+                      animate={{
+                        y: [0, -6, 0],
+                        boxShadow: [
+                          '0 0 0 rgba(217,255,87,0)',
+                          '0 0 36px rgba(217,255,87,0.35)',
+                          '0 0 0 rgba(217,255,87,0)',
+                        ],
+                      }}
+                      transition={{
+                        duration: 3,
+                        repeat: Infinity,
+                        ease: 'easeInOut',
+                      }}
+                      className="w-20 h-20 rounded-[30px] bg-[#D9FF57] text-[#1F2430] flex items-center justify-center shrink-0"
+                    >
+                      <Truck size={42} />
+                    </motion.div>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-3 mt-5">
-                    <div className="rounded-2xl bg-white/8 border border-white/10 p-3">
-                      <p className="text-white/40 text-xs">Deliveries</p>
-                      <h3 className="text-xl font-bold mt-1">
-                        {deliveries.filter((d) => d.status === 'Delivery').length}
-                      </h3>
-                    </div>
+                  <div className="grid grid-cols-2 gap-3 mt-6">
+                    <SmallMetric
+                      label="Deliveries"
+                      value={deliveries.filter((d) => d.status === 'Delivery').length}
+                    />
 
-                    <div className="rounded-2xl bg-white/8 border border-white/10 p-3">
-                      <p className="text-white/40 text-xs">Paused</p>
-                      <h3 className="text-xl font-bold mt-1 text-red-200">
-                        {tomorrow?.paused_count || 0}
-                      </h3>
-                    </div>
+                    <SmallMetric
+                      label="Paused"
+                      value={tomorrow?.paused_count || 0}
+                      danger
+                    />
                   </div>
                 </div>
-              </div>
+              </motion.div>
 
-              <div className="grid grid-cols-2 gap-4 mb-5">
+              <motion.div
+                variants={itemVariants}
+                className="grid grid-cols-2 gap-4 mb-5"
+              >
                 <StatCard
                   icon={<Users size={21} />}
                   label="Customers"
@@ -424,14 +476,37 @@ async function logAdminAction(action, details = '') {
                   label="Pending Pay"
                   value={dashboard?.pending_payment_count}
                 />
-              </div>
+              </motion.div>
 
-              <div className="glass-card rounded-[30px] p-5 mb-5">
+              <motion.div
+                variants={itemVariants}
+                className="glass-card rounded-[30px] p-5 mb-5"
+              >
+                <SectionTitle
+                  icon={<IndianRupee size={22} />}
+                  title="Money Overview"
+                />
+
+                <div className="grid grid-cols-2 gap-3 mt-4">
+                  <SmallMetric
+                    label="Total Balance"
+                    value={`₹${dashboard?.total_balance || 0}`}
+                  />
+
+                  <SmallMetric
+                    label="Pending Amount"
+                    value={`₹${dashboard?.pending_payment_amount || 0}`}
+                    warning
+                  />
+                </div>
+              </motion.div>
+
+              <motion.div
+                variants={itemVariants}
+                className="glass-card rounded-[30px] p-5 mb-5"
+              >
                 <div className="flex items-center justify-between mb-4">
-                  <div className="flex items-center gap-3">
-                    <Users size={22} className="text-[#D9FF57]" />
-                    <h2 className="text-xl font-bold">Customers</h2>
-                  </div>
+                  <SectionTitle icon={<Users size={22} />} title="Customers" />
 
                   <span className="text-xs text-white/40">
                     {filteredCustomers.length}/{customers.length}
@@ -456,97 +531,19 @@ async function logAdminAction(action, details = '') {
                   <p className="text-white/45 text-sm">No customer found.</p>
                 ) : (
                   <div className="space-y-3 max-h-[420px] overflow-y-auto custom-scrollbar pr-1">
-                    {filteredCustomers.map((customer, index) => {
-                      const status = String(customer.status || '').toLowerCase()
-
-                      let statusClass = 'bg-white/10 border-white/10 text-white/60'
-
-                      if (status === 'active') {
-                        statusClass = 'bg-green-400/15 border-green-300/30 text-green-200'
-                      } else if (status === 'paused') {
-                        statusClass = 'bg-yellow-400/15 border-yellow-300/30 text-yellow-100'
-                      } else if (status === 'inactive') {
-                        statusClass = 'bg-red-400/15 border-red-300/30 text-red-200'
-                      } else if (status === 'testing') {
-                        statusClass = 'bg-blue-400/15 border-blue-300/30 text-blue-200'
-                      }
-
-                      return (
-                        <div
-                          key={index}
-                          className="rounded-2xl bg-white/8 border border-white/10 p-3"
-                        >
-                          <div className="flex items-start justify-between gap-3">
-                            <div>
-                              <h3 className="font-bold">{customer.name}</h3>
-
-                              <p className="text-white/40 text-xs mt-1">
-                                Flat {customer.flat_no || '-'} • {customer.mobile}
-                              </p>
-                            </div>
-
-                            <span
-                              className={`px-2.5 py-1 rounded-full border text-[10px] font-bold capitalize ${statusClass}`}
-                            >
-                              {customer.status || 'Unknown'}
-                            </span>
-                          </div>
-
-                          <div className="grid grid-cols-2 gap-3 mt-3">
-                            <div className="rounded-xl bg-white/6 border border-white/10 p-2">
-                              <p className="text-white/35 text-[10px]">Quantity</p>
-
-                              <p className="text-sm font-bold text-[#D9FF57] mt-0.5">
-                                {customer.liter || 0}L
-                              </p>
-                            </div>
-
-                            <div className="rounded-xl bg-white/6 border border-white/10 p-2">
-                              <p className="text-white/35 text-[10px]">Balance</p>
-
-                              <p className="text-sm font-bold mt-0.5">
-                                ₹{customer.remaining_balance || 0}
-                              </p>
-                            </div>
-                          </div>
-                        </div>
-                      )
-                    })}
+                    {filteredCustomers.map((customer, index) => (
+                      <CustomerCard key={index} customer={customer} />
+                    ))}
                   </div>
                 )}
-              </div>
+              </motion.div>
 
-              <div className="glass-card rounded-[30px] p-5 mb-5">
-                <div className="flex items-center gap-3 mb-4">
-                  <IndianRupee size={22} className="text-[#D9FF57]" />
-                  <h2 className="text-xl font-bold">Money Overview</h2>
-                </div>
-
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="rounded-2xl bg-white/8 border border-white/10 p-3">
-                    <p className="text-white/40 text-xs">Total Balance</p>
-
-                    <h3 className="text-xl font-bold text-[#D9FF57] mt-1">
-                      ₹{dashboard?.total_balance || 0}
-                    </h3>
-                  </div>
-
-                  <div className="rounded-2xl bg-white/8 border border-white/10 p-3">
-                    <p className="text-white/40 text-xs">Pending Amount</p>
-
-                    <h3 className="text-xl font-bold text-yellow-100 mt-1">
-                      ₹{dashboard?.pending_payment_amount || 0}
-                    </h3>
-                  </div>
-                </div>
-              </div>
-
-              <div className="glass-card rounded-[30px] p-5 mb-5">
+              <motion.div
+                variants={itemVariants}
+                className="glass-card rounded-[30px] p-5 mb-5"
+              >
                 <div className="flex items-center justify-between mb-4">
-                  <div className="flex items-center gap-3">
-                    <Wallet size={22} className="text-[#D9FF57]" />
-                    <h2 className="text-xl font-bold">Pending Payments</h2>
-                  </div>
+                  <SectionTitle icon={<Wallet size={22} />} title="Pending Payments" />
 
                   <span className="text-xs text-white/40">
                     {pendingPayments.length}
@@ -558,66 +555,27 @@ async function logAdminAction(action, details = '') {
                 ) : (
                   <div className="space-y-3">
                     {pendingPayments.slice(0, 5).map((payment, index) => (
-                      <div
+                      <PaymentCard
                         key={index}
-                        className="rounded-2xl bg-white/8 border border-white/10 p-3"
-                      >
-                        <div className="flex items-start justify-between gap-3">
-                          <div>
-                            <h3 className="font-bold">{payment.name}</h3>
-
-                            <p className="text-white/40 text-xs mt-1">
-                              {payment.mobile}
-                            </p>
-                          </div>
-
-                          <div className="text-right">
-                            <p className="text-[#D9FF57] font-bold">
-                              ₹{payment.amount}
-                            </p>
-
-                            <p className="text-yellow-100 text-xs mt-1">
-                              Pending
-                            </p>
-                          </div>
-                        </div>
-
-                        <p className="text-white/35 text-xs mt-3">
-                          {payment.timestamp}
-                        </p>
-
-                        <div className="grid grid-cols-2 gap-2 mt-3">
-                          <button
-                            onClick={() => updatePaymentStatus(payment.row, 'Verified')}
-                            className="rounded-xl bg-[#D9FF57] text-[#1F2430] py-2 text-xs font-bold press"
-                          >
-                            Verify
-                          </button>
-
-                          <button
-                            onClick={() => updatePaymentStatus(payment.row, 'Rejected')}
-                            className="rounded-xl bg-red-400/15 border border-red-300/30 text-red-200 py-2 text-xs font-bold press"
-                          >
-                            Reject
-                          </button>
-                        </div>
-                      </div>
+                        payment={payment}
+                        onUpdate={updatePaymentStatus}
+                      />
                     ))}
                   </div>
                 )}
-              </div>
+              </motion.div>
 
-              <div className="glass-card rounded-[30px] p-5">
+              <motion.div
+                variants={itemVariants}
+                className="glass-card rounded-[30px] p-5"
+              >
                 <div className="flex items-center justify-between gap-3 mb-4">
-                  <div className="flex items-center gap-3">
-                    <Milk size={22} className="text-[#D9FF57]" />
-                    <h2 className="text-xl font-bold">Tomorrow List</h2>
-                  </div>
+                  <SectionTitle icon={<Milk size={22} />} title="Tomorrow List" />
 
                   <div className="flex items-center gap-2">
                     <button
                       onClick={copyTomorrowDeliveryList}
-                      className="px-3 py-2 rounded-xl bg-[#D9FF57]/15 border border-[#D9FF57]/30 text-[#D9FF57] text-xs font-bold flex items-center gap-1.5 press"
+                      className="px-3 py-2 rounded-xl bg-[#D9FF57]/15 border border-[#D9FF57]/30 text-[#D9FF57] text-xs font-bold flex items-center gap-1.5 tap-scale"
                     >
                       <Copy size={14} />
                       Copy
@@ -625,7 +583,7 @@ async function logAdminAction(action, details = '') {
 
                     <button
                       onClick={openDeliveryWhatsApp}
-                      className="px-3 py-2 rounded-xl bg-green-400/15 border border-green-300/30 text-green-200 text-xs font-bold flex items-center gap-1.5 press"
+                      className="px-3 py-2 rounded-xl bg-green-400/15 border border-green-300/30 text-green-200 text-xs font-bold flex items-center gap-1.5 tap-scale"
                     >
                       <MessageCircle size={14} />
                       WhatsApp
@@ -640,42 +598,53 @@ async function logAdminAction(action, details = '') {
                 ) : (
                   <div className="space-y-3">
                     {deliveries.map((item, index) => (
-                      <div
-                        key={index}
-                        className="rounded-2xl bg-white/8 border border-white/10 p-3 flex items-center justify-between gap-3"
-                      >
-                        <div>
-                          <h3 className="font-bold">{item.name}</h3>
-
-                          <p className="text-white/40 text-xs mt-1">
-                            Flat {item.flat_no || '-'} • {item.mobile}
-                          </p>
-                        </div>
-
-                        <div className="text-right">
-                          <p
-                            className={`font-bold ${
-                              item.status === 'Paused'
-                                ? 'text-red-200'
-                                : 'text-[#D9FF57]'
-                            }`}
-                          >
-                            {item.status === 'Paused' ? 'Ab' : `${item.quantity}L`}
-                          </p>
-
-                          <p className="text-white/35 text-xs mt-1">
-                            {item.status}
-                          </p>
-                        </div>
-                      </div>
+                      <DeliveryItem key={index} item={item} />
                     ))}
                   </div>
                 )}
-              </div>
+              </motion.div>
             </>
           )}
-        </div>
+        </motion.div>
       </div>
+    </div>
+  )
+}
+
+function IconButton({ icon, onClick, active = false }) {
+  return (
+    <button
+      onClick={onClick}
+      className={`w-10 h-10 rounded-2xl border flex items-center justify-center tap-scale ${
+        active
+          ? 'bg-[#D9FF57]/15 border-[#D9FF57]/30 text-[#D9FF57]'
+          : 'bg-white/10 border-white/10 text-white/75'
+      }`}
+    >
+      {icon}
+    </button>
+  )
+}
+
+function SectionTitle({ icon, title }) {
+  return (
+    <div className="flex items-center gap-3">
+      <div className="text-[#D9FF57]">{icon}</div>
+      <h2 className="text-xl font-bold">{title}</h2>
+    </div>
+  )
+}
+
+function SmallMetric({ label, value, danger = false, warning = false }) {
+  let valueClass = 'text-[#D9FF57]'
+
+  if (danger) valueClass = 'text-red-200'
+  if (warning) valueClass = 'text-yellow-100'
+
+  return (
+    <div className="rounded-2xl bg-white/8 border border-white/10 p-3">
+      <p className="text-white/40 text-xs">{label}</p>
+      <h3 className={`text-xl font-bold mt-1 ${valueClass}`}>{value}</h3>
     </div>
   )
 }
@@ -689,6 +658,124 @@ function StatCard({ icon, label, value }) {
 
       <p className="text-white/45 text-xs mb-1">{label}</p>
       <h2 className="text-2xl font-bold">{value ?? 0}</h2>
+    </div>
+  )
+}
+
+function CustomerCard({ customer }) {
+  const status = String(customer.status || '').toLowerCase()
+
+  let statusClass = 'bg-white/10 border-white/10 text-white/60'
+
+  if (status === 'active') {
+    statusClass = 'bg-green-400/15 border-green-300/30 text-green-200'
+  } else if (status === 'paused') {
+    statusClass = 'bg-yellow-400/15 border-yellow-300/30 text-yellow-100'
+  } else if (status === 'inactive') {
+    statusClass = 'bg-red-400/15 border-red-300/30 text-red-200'
+  } else if (status === 'testing') {
+    statusClass = 'bg-blue-400/15 border-blue-300/30 text-blue-200'
+  }
+
+  return (
+    <div className="rounded-2xl bg-white/8 border border-white/10 p-3">
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <h3 className="font-bold">{customer.name}</h3>
+
+          <p className="text-white/40 text-xs mt-1">
+            Flat {customer.flat_no || '-'} • {customer.mobile}
+          </p>
+        </div>
+
+        <span
+          className={`px-2.5 py-1 rounded-full border text-[10px] font-bold capitalize ${statusClass}`}
+        >
+          {customer.status || 'Unknown'}
+        </span>
+      </div>
+
+      <div className="grid grid-cols-2 gap-3 mt-3">
+        <div className="rounded-xl bg-white/6 border border-white/10 p-2">
+          <p className="text-white/35 text-[10px]">Quantity</p>
+
+          <p className="text-sm font-bold text-[#D9FF57] mt-0.5">
+            {customer.liter || 0}L
+          </p>
+        </div>
+
+        <div className="rounded-xl bg-white/6 border border-white/10 p-2">
+          <p className="text-white/35 text-[10px]">Balance</p>
+
+          <p className="text-sm font-bold mt-0.5">
+            ₹{customer.remaining_balance || 0}
+          </p>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function PaymentCard({ payment, onUpdate }) {
+  return (
+    <div className="rounded-2xl bg-white/8 border border-white/10 p-3">
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <h3 className="font-bold">{payment.name}</h3>
+
+          <p className="text-white/40 text-xs mt-1">{payment.mobile}</p>
+        </div>
+
+        <div className="text-right">
+          <p className="text-[#D9FF57] font-bold">₹{payment.amount}</p>
+
+          <p className="text-yellow-100 text-xs mt-1">Pending</p>
+        </div>
+      </div>
+
+      <p className="text-white/35 text-xs mt-3">{payment.timestamp}</p>
+
+      <div className="grid grid-cols-2 gap-2 mt-3">
+        <button
+          onClick={() => onUpdate(payment.row, 'Verified')}
+          className="rounded-xl bg-[#D9FF57] text-[#1F2430] py-2 text-xs font-bold tap-scale"
+        >
+          Verify
+        </button>
+
+        <button
+          onClick={() => onUpdate(payment.row, 'Rejected')}
+          className="rounded-xl bg-red-400/15 border border-red-300/30 text-red-200 py-2 text-xs font-bold tap-scale"
+        >
+          Reject
+        </button>
+      </div>
+    </div>
+  )
+}
+
+function DeliveryItem({ item }) {
+  return (
+    <div className="rounded-2xl bg-white/8 border border-white/10 p-3 flex items-center justify-between gap-3">
+      <div>
+        <h3 className="font-bold">{item.name}</h3>
+
+        <p className="text-white/40 text-xs mt-1">
+          Flat {item.flat_no || '-'} • {item.mobile}
+        </p>
+      </div>
+
+      <div className="text-right">
+        <p
+          className={`font-bold ${
+            item.status === 'Paused' ? 'text-red-200' : 'text-[#D9FF57]'
+          }`}
+        >
+          {item.status === 'Paused' ? 'Ab' : `${item.quantity}L`}
+        </p>
+
+        <p className="text-white/35 text-xs mt-1">{item.status}</p>
+      </div>
     </div>
   )
 }
