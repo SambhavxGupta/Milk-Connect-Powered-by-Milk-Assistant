@@ -137,9 +137,20 @@ def add_security_headers(response):
     response.headers["X-Content-Type-Options"] = "nosniff"
     response.headers["X-Frame-Options"] = "DENY"
     response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
-    response.headers["Permissions-Policy"] = "camera=(), microphone=(), geolocation=()"
-    return response
+    response.headers["Permissions-Policy"] = "camera=(), microphone=(), geolocation=(), payment=()"
 
+    response.headers["Cross-Origin-Opener-Policy"] = "same-origin"
+    response.headers["Cross-Origin-Resource-Policy"] = "same-site"
+
+    # API-only CSP. Full frontend CSP is handled by hosting headers later.
+    response.headers["Content-Security-Policy"] = (
+        "default-src 'none'; "
+        "frame-ancestors 'none'; "
+        "base-uri 'none'; "
+        "form-action 'none';"
+    )
+
+    return response
 
 # =====================================================
 # STRICT INPUT VALIDATION
