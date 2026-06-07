@@ -13,6 +13,7 @@ import {
   ShieldCheck,
   Truck,
   Users,
+  DatabaseBackup,
   Wallet,
 } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
@@ -117,6 +118,30 @@ export default function AdminDashboard() {
       showToast('Payment status update failed', 'error')
     }
   }
+
+
+  async function createBackup() {
+  if (!adminToken) return
+
+  try {
+    const res = await fetch(`${API_BASE}/api/admin-create-backup`, {
+      method: 'POST',
+      headers: getAdminHeaders(),
+      body: JSON.stringify({}),
+    })
+
+    const data = await res.json()
+
+    showToast(data.message, data.success ? 'success' : 'warning')
+
+    if (data.success) {
+      await loadDashboard()
+    }
+  } catch (err) {
+    showToast('Backup failed. Please try again.', 'error')
+  }
+}
+
 
   function logoutAdmin() {
     localStorage.removeItem('adminPin')
@@ -308,7 +333,12 @@ async function logAdminAction(action, details = '') {
                 <p className="text-white/40 text-xs">Vendor dashboard</p>
               </div>
             </div>
-
+                <button
+                  onClick={createBackup}
+                  className="w-10 h-10 rounded-2xl bg-[#D9FF57]/15 border border-[#D9FF57]/30 flex items-center justify-center press"
+                >
+                  <DatabaseBackup size={18} className="text-[#D9FF57]" />
+                </button>
             <div className="flex items-center gap-2">
               <button
                 onClick={loadDashboard}

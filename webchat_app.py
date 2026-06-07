@@ -24,6 +24,7 @@ from milk_service import (
     create_admin_token,
     verify_admin_token,
     append_admin_audit_log,
+    create_main_sheet_backup,
 )
 
 app = Flask(__name__)
@@ -631,6 +632,25 @@ def api_change_pin():
 # =====================================================
 # ADMIN
 # =====================================================
+
+@app.route("/api/admin-create-backup", methods=["POST"])
+def api_admin_create_backup():
+    data = request.json or {}
+
+    auth_error = require_admin_auth(data)
+    if auth_error:
+        return auth_error
+
+    result = create_main_sheet_backup()
+
+    append_admin_audit_log(
+        action="ADMIN_CREATED_BACKUP",
+        details=result.get("message", ""),
+        ip_address=get_client_ip(),
+        status="Success" if result.get("success") else "Failed",
+    )
+
+    return jsonify(result)
 
 @app.route("/api/admin-audit-log", methods=["POST"])
 def api_admin_audit_log():
