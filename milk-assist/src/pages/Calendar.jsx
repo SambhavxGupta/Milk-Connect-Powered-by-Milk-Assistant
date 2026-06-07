@@ -12,7 +12,6 @@ import {
 import { useNavigate } from 'react-router-dom'
 import FloatingBottomNav from '../components/FloatingBottomNav'
 
-
 const API_BASE = ['localhost', '127.0.0.1'].includes(window.location.hostname)
   ? 'http://127.0.0.1:5000'
   : 'https://milk-connect-powered-by-milk-assistant.onrender.com'
@@ -27,9 +26,23 @@ export default function Calendar() {
   const currentMonthIndex = today.getMonth()
   const currentYear = today.getFullYear()
   const currentMonth = today.toLocaleString('default', { month: 'long' })
+
   const daysInMonth = new Date(currentYear, currentMonthIndex + 1, 0).getDate()
+  const firstDayOfMonth = new Date(currentYear, currentMonthIndex, 1).getDay()
 
   const days = Array.from({ length: daysInMonth }, (_, i) => i + 1)
+
+  const calendarCells = [
+    ...Array.from({ length: firstDayOfMonth }, (_, i) => ({
+      type: 'blank',
+      id: `blank-${i}`,
+    })),
+    ...days.map((day) => ({
+      type: 'day',
+      id: `day-${day}`,
+      day,
+    })),
+  ]
 
   const [selectedDays, setSelectedDays] = useState([])
   const [pausedDays, setPausedDays] = useState([])
@@ -50,6 +63,16 @@ export default function Calendar() {
       })
   }
 
+  function formatLitres(value) {
+    const text = String(value || '').trim()
+
+    if (!text) return '0L'
+    if (text.toLowerCase() === 'ab') return 'Ab'
+    if (text.toLowerCase().endsWith('l')) return text
+
+    return `${text}L`
+  }
+
   async function loadCalendarData() {
     if (!mobile) return
 
@@ -62,6 +85,11 @@ export default function Calendar() {
 
       const data = await res.json()
 
+      if (!res.ok || data.success === false) {
+        showToast(data.message || 'Session expired. Please login again.', 'warning')
+        return
+      }
+
       setPausedDays(data.paused_days || [])
       setQuantityDays(data.quantity_days || {})
       setTotalMilk(data.total_milk || '0')
@@ -72,6 +100,7 @@ export default function Calendar() {
       }
     } catch (err) {
       console.log('Calendar data load failed', err)
+      showToast('Calendar data load failed', 'error')
     }
   }
 
@@ -106,15 +135,19 @@ export default function Calendar() {
       const res = await fetch(`${API_BASE}/api/pause`, {
         method: 'POST',
         headers: getCustomerHeaders(),
-        body: JSON.stringify(getCustomerAuth({
-  dates: formatSelectedDates(),
-})),
+        body: JSON.stringify(
+          getCustomerAuth({
+            dates: formatSelectedDates(),
+          })
+        ),
       })
 
       const data = await res.json()
-      showToast(data.result, data.result.includes('✅') ? 'success' : 'warning')
+      const message = data.result || data.message || 'Pause failed'
 
-      if (data.result.includes('✅')) {
+      showToast(message, data.success || message.includes('✅') ? 'success' : 'warning')
+
+      if (data.success || message.includes('✅')) {
         setSelectedDays([])
         await loadCalendarData()
       }
@@ -134,15 +167,19 @@ export default function Calendar() {
       const res = await fetch(`${API_BASE}/api/resume`, {
         method: 'POST',
         headers: getCustomerHeaders(),
-        body: JSON.stringify(getCustomerAuth({
-  dates: formatSelectedDates(),
-})),
+        body: JSON.stringify(
+          getCustomerAuth({
+            dates: formatSelectedDates(),
+          })
+        ),
       })
 
       const data = await res.json()
-      showToast(data.result, data.result.includes('✅') ? 'success' : 'warning')
+      const message = data.result || data.message || 'Resume failed'
 
-      if (data.result.includes('✅')) {
+      showToast(message, data.success || message.includes('✅') ? 'success' : 'warning')
+
+      if (data.success || message.includes('✅')) {
         setSelectedDays([])
         await loadCalendarData()
       }
@@ -162,22 +199,26 @@ export default function Calendar() {
       const res = await fetch(`${API_BASE}/api/change-quantity`, {
         method: 'POST',
         headers: getCustomerHeaders(),
-        body: JSON.stringify(getCustomerAuth({
-  quantity,
-  dates: formatSelectedDates(),
-})),
+        body: JSON.stringify(
+          getCustomerAuth({
+            quantity,
+            dates: formatSelectedDates(),
+          })
+        ),
       })
 
       const data = await res.json()
-      showToast(data.result, data.result.includes('✅') ? 'success' : 'warning')
+      const message = data.result || data.message || 'Quantity change failed'
 
-      if (data.result.includes('✅')) {
+      showToast(message, data.success || message.includes('✅') ? 'success' : 'warning')
+
+      if (data.success || message.includes('✅')) {
         setQuantity('')
         setSelectedDays([])
         await loadCalendarData()
       }
     } catch (err) {
-      showToast('Resume failed. Please try again.', 'error')
+      showToast('Quantity change failed. Please try again.', 'error')
     }
 
     setLoading(false)
@@ -249,7 +290,12 @@ export default function Calendar() {
             </div>
 
             <div className="grid grid-cols-7 gap-y-5">
-              {days.map((day) => {
+              {calendarCells.map((cell) => {
+                if (cell.type === 'blank') {
+                  return <div key={cell.id} className="h-[54px]" />
+                }
+
+                const day = cell.day
                 const dayQuantity = quantityDays[day] || defaultQuantity
                 const isPast = day <= currentDay
                 const isToday = day === currentDay
@@ -275,7 +321,7 @@ export default function Calendar() {
 
                 return (
                   <button
-                    key={day}
+                    key={cell.id}
                     onClick={() => toggleDay(day)}
                     className={`flex flex-col items-center press ${
                       isPast ? 'cursor-not-allowed' : ''
@@ -287,8 +333,12 @@ export default function Calendar() {
                       {isPaused ? <Pause size={15} /> : day}
                     </div>
 
-                    <p className={`text-[11px] mt-1 ${isPast ? 'text-white/20' : 'text-white/55'}`}>
-                      {isPaused ? 'Ab' : `${dayQuantity}L`}
+                    <p
+                      className={`text-[11px] mt-1 ${
+                        isPast ? 'text-white/20' : 'text-white/55'
+                      }`}
+                    >
+                      {isPaused ? 'Ab' : formatLitres(dayQuantity)}
                     </p>
                   </button>
                 )
@@ -367,7 +417,7 @@ export default function Calendar() {
             </div>
           )}
 
-                    <div className="glass-card mt-5 rounded-[34px] p-5">
+          <div className="glass-card mt-5 rounded-[34px] p-5">
             <div className="flex items-center justify-between mb-6">
               <h3 className="text-lg font-semibold">{currentMonth} Summary</h3>
 

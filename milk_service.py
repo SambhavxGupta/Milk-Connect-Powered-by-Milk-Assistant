@@ -6,6 +6,12 @@ print("1")
 import os
 print("2")
 
+import hashlib
+
+import secrets
+
+import hmac
+
 import gspread
 print("3")
 
@@ -123,65 +129,171 @@ def find_column(headers, keywords):
 
     return None
 
+def find_exact_column(headers, exact_names):
+    exact_names = [str(name).strip().lower() for name in exact_names]
+
+    for idx, header in enumerate(headers):
+        header_text = str(header).strip().lower()
+
+        if header_text in exact_names:
+            return idx
+
+    return None
+
+# =====================================================
+# SECURE PIN HASHING
+# =====================================================
+
+PIN_HASH_ITERATIONS = 200_000
+
+
+def is_valid_pin(pin):
+    pin = str(pin or "").strip()
+    return len(pin) == 6 and pin.isdigit()
+
+
+def hash_pin(pin, salt=None):
+    pin = str(pin or "").strip()
+
+    if salt is None:
+        salt = secrets.token_hex(16)
+
+    pin_hash = hashlib.pbkdf2_hmac(
+        "sha256",
+        pin.encode("utf-8"),
+        salt.encode("utf-8"),
+        PIN_HASH_ITERATIONS,
+    ).hex()
+
+    return salt, pin_hash
+
+
+def verify_pin_hash(pin, salt, stored_hash):
+    pin = str(pin or "").strip()
+    salt = str(salt or "").strip()
+    stored_hash = str(stored_hash or "").strip()
+
+    if not pin or not salt or not stored_hash:
+        return False
+
+    _, calculated_hash = hash_pin(pin, salt)
+
+    return hmac.compare_digest(calculated_hash, stored_hash)
+
+
+def ensure_pin_security_columns():
+    headers = sheet.row_values(1)
+
+    login_pin_col = find_exact_column(headers, ["login pin"])
+
+    current_col_count = sheet.col_count
+
+    def ensure_column(column_name):
+        nonlocal headers, current_col_count
+
+        existing_col = find_exact_column(headers, [column_name])
+        if existing_col is not None:
+            return existing_col
+
+        new_col_number = len(headers) + 1
+
+        if new_col_number > current_col_count:
+            cols_to_add = new_col_number - current_col_count
+            sheet.add_cols(cols_to_add)
+            current_col_count = new_col_number
+
+        sheet.update_cell(1, new_col_number, column_name)
+        headers.append(column_name)
+
+        return new_col_number - 1
+
+    pin_salt_col = ensure_column("PIN Salt")
+    pin_hash_col = ensure_column("PIN Hash")
+
+    return {
+        "login_pin_col": login_pin_col,
+        "pin_salt_col": pin_salt_col,
+        "pin_hash_col": pin_hash_col,
+    }
+
+
+def save_customer_pin_hash(customer, new_pin):
+    cols = ensure_pin_security_columns()
+
+    salt, pin_hash = hash_pin(new_pin)
+
+    row = customer["row"]
+
+    sheet.update_cell(row, cols["pin_salt_col"] + 1, salt)
+    sheet.update_cell(row, cols["pin_hash_col"] + 1, pin_hash)
+
+    if cols["login_pin_col"] is not None:
+        sheet.update_cell(row, cols["login_pin_col"] + 1, "SET")
+
+    return {
+        "salt": salt,
+        "pin_hash": pin_hash,
+    }
+
+
+def customer_pin_matches(customer, entered_pin):
+    entered_pin = str(entered_pin or "").strip()
+
+    pin_salt = str(customer.get("pin_salt", "")).strip()
+    pin_hash = str(customer.get("pin_hash", "")).strip()
+    old_login_pin = str(customer.get("login_pin", "")).strip()
+
+    if pin_salt and pin_hash:
+        return verify_pin_hash(entered_pin, pin_salt, pin_hash)
+
+    if old_login_pin and old_login_pin.upper() != "SET":
+        return hmac.compare_digest(old_login_pin, entered_pin)
+
+    return False
+
+
+def customer_has_any_pin(customer):
+    pin_salt = str(customer.get("pin_salt", "")).strip()
+    pin_hash = str(customer.get("pin_hash", "")).strip()
+    old_login_pin = str(customer.get("login_pin", "")).strip()
+
+    return bool((pin_salt and pin_hash) or (old_login_pin and old_login_pin.upper() != "SET"))
+
 # =====================================================
 # GET CUSTOMER INFO
 # =====================================================
 
 def get_customer_info(mobile):
-    
+    mobile = normalize_mobile(mobile)
+
     all_values = sheet.get_all_values()
+
+    if not all_values:
+        return None
 
     headers = all_values[0]
 
-    name_col = find_column(
-        headers,
-        ["name"]
-    )
+    name_col = find_column(headers, ["name"])
+    mobile_col = find_column(headers, ["mobile", "phone"])
+    status_col = find_column(headers, ["status"])
+    liter_col = find_column(headers, ["liter", "litre"])
+    flat_col = find_column(headers, ["flat"])
+    balance_col = find_column(headers, ["balance"])
 
-    mobile_col = find_column(
-        headers,
-        ["mobile", "phone"]
-    )
-
-    status_col = find_column(
-        headers,
-        ["status"]
-    )
-
-    liter_col = find_column(
-        headers,
-        ["liter", "litre"]
-    )
-
-    flat_col = find_column(
-        headers,
-        ["flat"]
-    )
-
-    balance_col = find_column(
-        headers,
-        ["balance"]
-    )
-    
-    pin_col = find_column(
-    headers,
-    ["login pin", "pin"]
-    )
+    pin_col = find_exact_column(headers, ["login pin"])
+    pin_salt_col = find_exact_column(headers, ["pin salt"])
+    pin_hash_col = find_exact_column(headers, ["pin hash"])
 
     if mobile_col is None:
         return None
 
     for row_idx, row in enumerate(all_values[1:], start=2):
-
         if len(row) <= mobile_col:
             continue
 
-        row_mobile = normalize_mobile(
-            row[mobile_col]
-        )
+        row_mobile = normalize_mobile(row[mobile_col])
 
         if row_mobile == mobile:
-
             return {
                 "row": row_idx,
 
@@ -214,11 +326,24 @@ def get_customer_info(mobile):
                     if balance_col is not None and len(row) > balance_col
                     else "0"
                 ),
+
                 "login_pin": (
                     row[pin_col].strip()
                     if pin_col is not None and len(row) > pin_col
                     else ""
-                )   
+                ),
+
+                "pin_salt": (
+                    row[pin_salt_col].strip()
+                    if pin_salt_col is not None and len(row) > pin_salt_col
+                    else ""
+                ),
+
+                "pin_hash": (
+                    row[pin_hash_col].strip()
+                    if pin_hash_col is not None and len(row) > pin_hash_col
+                    else ""
+                ),
             }
 
     return None
@@ -713,6 +838,17 @@ def get_payment_history(mobile):
 # =====================================================
 
 def verify_customer_login(mobile, pin):
+    ensure_pin_security_columns()
+
+    mobile = normalize_mobile(mobile)
+    entered_pin = str(pin or "").strip()
+
+    if not is_valid_pin(entered_pin):
+        return {
+            "success": False,
+            "message": "❌ PIN must be exactly 6 digits.",
+        }
+
     customer = get_customer_info(mobile)
 
     if not customer:
@@ -721,20 +857,21 @@ def verify_customer_login(mobile, pin):
             "message": "❌ Customer not found.",
         }
 
-    saved_pin = str(customer.get("login_pin", "")).strip()
-    entered_pin = str(pin or "").strip()
-
-    if not saved_pin:
+    if not customer_has_any_pin(customer):
         return {
             "success": False,
             "message": "❌ Login PIN is not set for this customer. Please contact admin.",
         }
 
-    if saved_pin != entered_pin:
+    if not customer_pin_matches(customer, entered_pin):
         return {
             "success": False,
             "message": "❌ Incorrect PIN.",
         }
+
+    # Auto-migrate old plain PIN to secure hash after successful login.
+    if not customer.get("pin_salt") or not customer.get("pin_hash"):
+        save_customer_pin_hash(customer, entered_pin)
 
     return {
         "success": True,
@@ -983,6 +1120,9 @@ def get_action_history(mobile):
 # =====================================================
 
 def change_customer_pin(mobile, current_pin, new_pin):
+    ensure_pin_security_columns()
+
+    mobile = normalize_mobile(mobile)
     customer = get_customer_info(mobile)
 
     if not customer:
@@ -993,49 +1133,43 @@ def change_customer_pin(mobile, current_pin, new_pin):
 
     current_pin = str(current_pin or "").strip()
     new_pin = str(new_pin or "").strip()
-    saved_pin = str(customer.get("login_pin", "")).strip()
 
-    if not saved_pin:
+    if not customer_has_any_pin(customer):
         return {
             "success": False,
             "message": "❌ PIN is not set for this customer. Please contact admin.",
         }
 
-    if current_pin != saved_pin:
+    if not is_valid_pin(current_pin):
+        return {
+            "success": False,
+            "message": "❌ Current PIN must be exactly 6 digits.",
+        }
+
+    if not customer_pin_matches(customer, current_pin):
         return {
             "success": False,
             "message": "❌ Current PIN is incorrect.",
         }
 
-    if len(new_pin) != 6 or not new_pin.isdigit():
+    if not is_valid_pin(new_pin):
         return {
             "success": False,
             "message": "❌ New PIN must be exactly 6 digits.",
         }
 
-    if new_pin == saved_pin:
+    if current_pin == new_pin:
         return {
             "success": False,
             "message": "⚠️ New PIN cannot be same as current PIN.",
         }
 
-    all_values = sheet.get_all_values()
-    headers = all_values[0]
-
-    pin_col = find_column(headers, ["login pin", "pin"])
-
-    if pin_col is None:
-        return {
-            "success": False,
-            "message": "❌ Login PIN column not found in Google Sheet.",
-        }
-
-    sheet.update_cell(customer["row"], pin_col + 1, new_pin)
+    save_customer_pin_hash(customer, new_pin)
 
     write_log(
         mobile,
         "CHANGE_PIN",
-        "Customer changed login PIN"
+        "Customer changed login PIN securely"
     )
 
     return {
