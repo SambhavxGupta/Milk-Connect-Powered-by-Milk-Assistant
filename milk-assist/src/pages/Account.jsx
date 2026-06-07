@@ -14,9 +14,10 @@ export default function Account() {
   const remainingBalance = localStorage.getItem('remainingBalance') || '₹0'
 
   function logout() {
-    localStorage.clear()
-    navigate('/')
-  }
+  localStorage.clear()
+  sessionStorage.removeItem('adminToken')
+  navigate('/')
+}
 
   return (
     <div className="min-h-screen bg-[#E9EDF2] flex justify-center items-center px-3 py-4">

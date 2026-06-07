@@ -65,6 +65,9 @@ export default function Login() {
       localStorage.setItem('customerName', customer.name || 'Customer')
       localStorage.setItem('litres', `${customer.liter || '1'}L`)
       localStorage.setItem('flatNo', customer.flat_no || '')
+      localStorage.removeItem('adminPin')
+      localStorage.removeItem('adminToken')
+      sessionStorage.removeItem('adminToken')
       localStorage.setItem(
         'remainingBalance',
         `₹${customer.remaining_balance || 0}`

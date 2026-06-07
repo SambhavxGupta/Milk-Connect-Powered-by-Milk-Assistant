@@ -35,7 +35,8 @@ export default function AdminLogin() {
 
       if (data.success) {
         localStorage.removeItem('adminPin')
-        localStorage.setItem('adminToken', data.admin_token || '')
+        localStorage.removeItem('adminToken')
+        sessionStorage.setItem('adminToken', data.admin_token || '')
 
         setTimeout(() => {
           navigate('/admin-dashboard')

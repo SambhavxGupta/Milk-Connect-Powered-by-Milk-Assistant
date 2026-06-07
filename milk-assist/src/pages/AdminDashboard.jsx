@@ -28,7 +28,7 @@ const EXTRA_MILK = 0.5
 
 export default function AdminDashboard() {
   const navigate = useNavigate()
-  const adminToken = localStorage.getItem('adminToken')
+  const adminToken = sessionStorage.getItem('adminToken')
 
   const [dashboard, setDashboard] = useState(null)
   const [loading, setLoading] = useState(true)
@@ -79,6 +79,8 @@ export default function AdminDashboard() {
       if (!data.success) {
         showToast(data.message || 'Unauthorized admin access', 'error')
         localStorage.removeItem('adminPin')
+        localStorage.removeItem('adminToken')
+        sessionStorage.removeItem('adminToken')
         navigate('/admin-login')
         return
       }
@@ -118,7 +120,8 @@ export default function AdminDashboard() {
 
   function logoutAdmin() {
     localStorage.removeItem('adminPin')
-localStorage.removeItem('adminToken')
+    localStorage.removeItem('adminToken')
+    sessionStorage.removeItem('adminToken')
     navigate('/admin-login')
   }
 

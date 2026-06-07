@@ -2,6 +2,8 @@ from flask import Flask, request, jsonify
 from flask_cors import CORS
 import os
 import time
+import re
+from datetime import datetime, date
 
 from milk_service import (
     handle_pause,
@@ -140,6 +142,99 @@ def add_security_headers(response):
 
 
 # =====================================================
+# STRICT INPUT VALIDATION
+# =====================================================
+
+def clean_mobile(value):
+    return re.sub(r"\D", "", str(value or "").strip())
+
+
+def is_valid_mobile(value):
+    mobile = clean_mobile(value)
+    return len(mobile) == 10 and mobile.isdigit()
+
+
+def is_valid_pin_value(value):
+    pin = str(value or "").strip()
+    return len(pin) == 6 and pin.isdigit()
+
+
+def parse_positive_number(value):
+    try:
+        number = float(
+            str(value or "")
+            .replace("₹", "")
+            .replace(",", "")
+            .replace("L", "")
+            .replace("l", "")
+            .strip()
+        )
+        return number
+    except Exception:
+        return None
+
+
+def validate_amount(value):
+    amount = parse_positive_number(value)
+
+    if amount is None or amount <= 0:
+        return False, "❌ Invalid amount."
+
+    if amount > 100000:
+        return False, "❌ Amount is too high. Please contact admin."
+
+    return True, ""
+
+
+def validate_quantity(value):
+    quantity = parse_positive_number(value)
+
+    if quantity is None or quantity <= 0:
+        return False, "❌ Invalid milk quantity."
+
+    if quantity > 20:
+        return False, "❌ Quantity is too high. Please contact admin."
+
+    # Allow 0.5 steps only: 0.5, 1, 1.5, 2...
+    if (quantity * 10) % 5 != 0:
+        return False, "❌ Quantity must be in 0.5L steps."
+
+    return True, ""
+
+
+def validate_dates_list(dates):
+    if not isinstance(dates, list):
+        return False, "❌ Dates must be sent as a list."
+
+    if len(dates) == 0:
+        return False, "❌ No dates selected."
+
+    if len(dates) > 30:
+        return False, "❌ Maximum 30 dates allowed."
+
+    today = date.today()
+
+    for item in dates:
+        try:
+            parsed = datetime.strptime(str(item), "%d-%m-%Y").date()
+        except Exception:
+            return False, "❌ Invalid date format. Use DD-MM-YYYY."
+
+        if parsed <= today:
+            return False, "❌ Cannot edit today's or past delivery."
+
+    return True, ""
+
+
+def validation_error(message, status_code=400):
+    return jsonify({
+        "success": False,
+        "message": message,
+        "result": message,
+    }), status_code
+
+
+# =====================================================
 # AUTH HELPERS
 # =====================================================
 
@@ -210,6 +305,14 @@ def api_login():
 
     mobile = str(data.get("mobile", "")).strip()
     pin = str(data.get("pin", "")).strip()
+
+    mobile = clean_mobile(mobile)
+
+    if not is_valid_mobile(mobile):
+        return validation_error("❌ Enter a valid 10-digit mobile number.")
+
+    if not is_valid_pin_value(pin):
+        return validation_error("❌ PIN must be exactly 6 digits.")
 
     client_ip = get_client_ip()
     mobile_key = f"customer-login-mobile:{mobile}"
@@ -299,6 +402,10 @@ def api_pause():
 
     mobile = data.get("mobile")
     dates = data.get("dates")
+    
+    valid_dates, date_error = validate_dates_list(dates)
+    if not valid_dates:
+         return validation_error(date_error)
 
     result = handle_pause(
         mobile,
@@ -325,6 +432,10 @@ def api_resume():
     mobile = data.get("mobile")
     dates = data.get("dates")
 
+    valid_dates, date_error = validate_dates_list(dates)
+    if not valid_dates:
+        return validation_error(date_error)
+
     result = handle_resume(mobile, dates=dates)
 
     return jsonify({
@@ -345,7 +456,13 @@ def api_change_quantity():
     mobile = data.get("mobile")
     quantity = data.get("quantity")
     dates = data.get("dates")
+    valid_quantity, quantity_error = validate_quantity(quantity)
+    if not valid_quantity:
+        return validation_error(quantity_error)
 
+    valid_dates, date_error = validate_dates_list(dates)
+    if not valid_dates:
+        return validation_error(date_error)
     result = handle_modify_quantity(
         mobile,
         quantity,
@@ -374,6 +491,10 @@ def api_payment_info():
     mobile = data.get("mobile")
     amount = data.get("amount")
 
+    valid_amount, amount_error = validate_amount(amount)
+    if not valid_amount:
+        return validation_error(amount_error)
+
     result = get_secure_payment_info(
         mobile=mobile,
         amount=amount,
@@ -393,6 +514,13 @@ def api_payment_request():
     mobile = data.get("mobile")
     amount = data.get("amount")
     note = data.get("note", "")
+
+    valid_amount, amount_error = validate_amount(amount)
+    if not valid_amount:
+        return validation_error(amount_error)
+
+    if len(str(note)) > 300:
+        return validation_error("❌ Payment note is too long.")
 
     result = submit_payment_request(
         mobile=mobile,
@@ -452,6 +580,12 @@ def api_change_pin():
     mobile = str(data.get("mobile", "")).strip()
     current_pin = data.get("current_pin")
     new_pin = data.get("new_pin")
+    
+    if not is_valid_pin_value(current_pin):
+        return validation_error("❌ Current PIN must be exactly 6 digits.")
+
+    if not is_valid_pin_value(new_pin):
+        return validation_error("❌ New PIN must be exactly 6 digits.")
 
     change_pin_key = f"change-pin:{mobile}"
 
@@ -515,6 +649,9 @@ def api_admin_login():
     data = request.json or {}
 
     pin = str(data.get("pin", "")).strip()
+    
+    if not is_valid_pin_value(pin):
+        return validation_error("❌ Admin PIN must be exactly 6 digits.")
 
     client_ip = get_client_ip()
     admin_key = f"admin-login-ip:{client_ip}"
@@ -592,6 +729,17 @@ def api_admin_payment_status():
 
     row = data.get("row")
     status = data.get("status")
+    
+    try:
+        row = int(row)
+    except Exception:
+        return validation_error("❌ Invalid payment row.")
+
+    if row < 2:
+        return validation_error("❌ Invalid payment row.")
+
+    if status not in ["Pending", "Verified", "Rejected"]:
+        return validation_error("❌ Invalid payment status.")
 
     result = update_payment_request_status(
         row_number=row,
