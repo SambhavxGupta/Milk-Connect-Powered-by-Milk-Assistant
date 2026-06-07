@@ -19,6 +19,8 @@ from milk_service import (
     get_secure_payment_info,
     create_customer_token,
     verify_customer_token,
+    create_admin_token,
+    verify_admin_token,
 )
 
 app = Flask(__name__)
@@ -155,6 +157,22 @@ def require_customer_auth(data):
 
     return None
 
+def require_admin_auth(data):
+    token = (
+        data.get("admin_token")
+        or data.get("auth_token")
+        or data.get("token")
+    )
+
+    result = verify_admin_token(token)
+
+    if not result["success"]:
+        return jsonify({
+            "success": False,
+            "message": result["message"],
+        }), 401
+
+    return None
 
 # =====================================================
 # BASIC HEALTH ROUTE
@@ -485,6 +503,7 @@ def api_admin_login():
     return jsonify({
         "success": True,
         "message": "✅ Admin login successful.",
+        "admin_token": create_admin_token(),
     })
 
 
@@ -492,13 +511,9 @@ def api_admin_login():
 def api_admin_dashboard():
     data = request.json or {}
 
-    pin = data.get("pin")
-
-    if not verify_admin_pin(pin):
-        return jsonify({
-            "success": False,
-            "message": "❌ Unauthorized admin access.",
-        })
+    auth_error = require_admin_auth(data)
+    if auth_error:
+        return auth_error
 
     dashboard = get_admin_dashboard_data()
 
@@ -512,15 +527,12 @@ def api_admin_dashboard():
 def api_admin_payment_status():
     data = request.json or {}
 
-    pin = data.get("pin")
+    auth_error = require_admin_auth(data)
+    if auth_error:
+        return auth_error
+
     row = data.get("row")
     status = data.get("status")
-
-    if not verify_admin_pin(pin):
-        return jsonify({
-            "success": False,
-            "message": "❌ Unauthorized admin access.",
-        })
 
     result = update_payment_request_status(
         row_number=row,

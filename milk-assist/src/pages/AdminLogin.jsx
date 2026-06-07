@@ -34,7 +34,8 @@ export default function AdminLogin() {
       showToast(data.message, data.success ? 'success' : 'error')
 
       if (data.success) {
-        localStorage.setItem('adminPin', pin)
+        localStorage.removeItem('adminPin')
+        localStorage.setItem('adminToken', data.admin_token || '')
 
         setTimeout(() => {
           navigate('/admin-dashboard')

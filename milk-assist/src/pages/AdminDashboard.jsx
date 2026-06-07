@@ -27,7 +27,7 @@ const EXTRA_MILK = 0.5
 
 export default function AdminDashboard() {
   const navigate = useNavigate()
-  const adminPin = localStorage.getItem('adminPin')
+  const adminToken = localStorage.getItem('adminToken')
 
   const [dashboard, setDashboard] = useState(null)
   const [loading, setLoading] = useState(true)
@@ -59,7 +59,7 @@ export default function AdminDashboard() {
   }, [])
 
   async function loadDashboard() {
-    if (!adminPin) {
+    if (!adminToken) {
       navigate('/admin-login')
       return
     }
@@ -70,7 +70,7 @@ export default function AdminDashboard() {
       const res = await fetch(`${API_BASE}/api/admin-dashboard`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ pin: adminPin }),
+        body: JSON.stringify({ admin_token: adminToken }),
       })
 
       const data = await res.json()
@@ -91,16 +91,16 @@ export default function AdminDashboard() {
   }
 
   async function updatePaymentStatus(row, status) {
-    if (!adminPin) return
+    if (!adminToken) return
 
     try {
       const res = await fetch(`${API_BASE}/api/admin-payment-status`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          pin: adminPin,
-          row,
-          status,
+          admin_token: adminToken,
+row,
+status,
         }),
       })
 
@@ -118,6 +118,7 @@ export default function AdminDashboard() {
 
   function logoutAdmin() {
     localStorage.removeItem('adminPin')
+localStorage.removeItem('adminToken')
     navigate('/admin-login')
   }
 

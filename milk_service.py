@@ -1512,3 +1512,53 @@ def verify_customer_token(token, mobile=None):
         "success": True,
         "mobile": token_mobile,
     }
+    
+# =====================================================
+# ADMIN SESSION TOKENS
+# =====================================================
+
+def create_admin_token():
+    serializer = get_session_serializer()
+
+    return serializer.dumps({
+        "type": "admin",
+    })
+
+
+def verify_admin_token(token):
+    if not token:
+        return {
+            "success": False,
+            "message": "❌ Admin session missing. Please login again.",
+        }
+
+    max_age = int(os.getenv("ADMIN_TOKEN_MAX_AGE_SECONDS", "86400"))
+    serializer = get_session_serializer()
+
+    try:
+        data = serializer.loads(token, max_age=max_age)
+    except SignatureExpired:
+        return {
+            "success": False,
+            "message": "❌ Admin session expired. Please login again.",
+        }
+    except BadSignature:
+        return {
+            "success": False,
+            "message": "❌ Invalid admin session. Please login again.",
+        }
+    except Exception:
+        return {
+            "success": False,
+            "message": "❌ Admin session verification failed.",
+        }
+
+    if data.get("type") != "admin":
+        return {
+            "success": False,
+            "message": "❌ Invalid admin session.",
+        }
+
+    return {
+        "success": True,
+    }
