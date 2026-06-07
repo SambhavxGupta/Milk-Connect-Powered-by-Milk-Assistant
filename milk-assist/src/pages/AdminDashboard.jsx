@@ -17,6 +17,7 @@ import {
 } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { showToast } from '../utils/toast'
+import { getAdminHeaders } from '../utils/auth'
 
 const API_BASE = ['localhost', '127.0.0.1'].includes(window.location.hostname)
   ? 'http://127.0.0.1:5000'
@@ -69,8 +70,8 @@ export default function AdminDashboard() {
     try {
       const res = await fetch(`${API_BASE}/api/admin-dashboard`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ admin_token: adminToken }),
+        headers: getAdminHeaders(),
+        body: JSON.stringify({}),
       })
 
       const data = await res.json()
@@ -96,12 +97,11 @@ export default function AdminDashboard() {
     try {
       const res = await fetch(`${API_BASE}/api/admin-payment-status`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getAdminHeaders(),
         body: JSON.stringify({
-          admin_token: adminToken,
-row,
-status,
-        }),
+  row,
+  status,
+}),
       })
 
       const data = await res.json()

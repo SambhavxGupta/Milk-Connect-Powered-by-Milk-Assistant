@@ -1,6 +1,6 @@
 import { showToast } from '../utils/toast'
 import { useEffect, useState } from 'react'
-import { getCustomerAuth } from '../utils/auth'
+import { getCustomerAuth, getCustomerHeaders } from '../utils/auth'
 import {
   ArrowLeft,
   CalendarDays,
@@ -56,7 +56,7 @@ export default function Calendar() {
     try {
       const res = await fetch(`${API_BASE}/api/calendar-data`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getCustomerHeaders(),
         body: JSON.stringify(getCustomerAuth()),
       })
 
@@ -105,7 +105,7 @@ export default function Calendar() {
     try {
       const res = await fetch(`${API_BASE}/api/pause`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getCustomerHeaders(),
         body: JSON.stringify(getCustomerAuth({
   dates: formatSelectedDates(),
 })),
@@ -133,7 +133,7 @@ export default function Calendar() {
     try {
       const res = await fetch(`${API_BASE}/api/resume`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getCustomerHeaders(),
         body: JSON.stringify(getCustomerAuth({
   dates: formatSelectedDates(),
 })),
@@ -161,7 +161,7 @@ export default function Calendar() {
     try {
       const res = await fetch(`${API_BASE}/api/change-quantity`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getCustomerHeaders(),
         body: JSON.stringify(getCustomerAuth({
   quantity,
   dates: formatSelectedDates(),

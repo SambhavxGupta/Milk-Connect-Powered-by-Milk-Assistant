@@ -2,7 +2,7 @@ import { showToast } from '../utils/toast'
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Pause, Play, FileText, Repeat } from 'lucide-react'
-import { getCustomerAuth } from '../utils/auth'
+import { getCustomerAuth, getCustomerHeaders } from '../utils/auth'
 
 const API_BASE = ['localhost', '127.0.0.1'].includes(window.location.hostname)
   ? 'http://127.0.0.1:5000'
@@ -29,7 +29,7 @@ export default function QuickActions() {
     try {
       const res = await fetch(`${API_BASE}/api/calendar-data`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getCustomerHeaders(),
         body: JSON.stringify(getCustomerAuth()),
       })
 
@@ -54,7 +54,7 @@ export default function QuickActions() {
     try {
       const res = await fetch(`${API_BASE}/api/${endpoint}`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getCustomerHeaders(),
         body: JSON.stringify(getCustomerAuth({
   dates: [tomorrowDate],
 })),

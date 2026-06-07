@@ -142,9 +142,21 @@ def add_security_headers(response):
 # AUTH HELPERS
 # =====================================================
 
+def get_bearer_token():
+    auth_header = request.headers.get("Authorization", "")
+
+    if auth_header.startswith("Bearer "):
+        return auth_header.replace("Bearer ", "").strip()
+
+    return ""
+
 def require_customer_auth(data):
     mobile = data.get("mobile")
-    token = data.get("auth_token") or data.get("token")
+    token = (
+        get_bearer_token()
+        or data.get("auth_token")
+        or data.get("token")
+    )
 
     result = verify_customer_token(token, mobile)
 
@@ -159,7 +171,8 @@ def require_customer_auth(data):
 
 def require_admin_auth(data):
     token = (
-        data.get("admin_token")
+        get_bearer_token()
+        or data.get("admin_token")
         or data.get("auth_token")
         or data.get("token")
     )

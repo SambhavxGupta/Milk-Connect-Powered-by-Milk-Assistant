@@ -12,7 +12,7 @@ import {
 import { useNavigate } from 'react-router-dom'
 import FloatingBottomNav from '../components/FloatingBottomNav'
 import { showToast } from '../utils/toast'
-import { getCustomerAuth } from '../utils/auth'
+import { getCustomerAuth, getCustomerHeaders } from '../utils/auth'
 
 const API_BASE = ['localhost', '127.0.0.1'].includes(window.location.hostname)
   ? 'http://127.0.0.1:5000'
@@ -76,7 +76,7 @@ export default function Payment() {
     try {
       const res = await fetch(`${API_BASE}/api/payment-info`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getCustomerHeaders(),
         body: JSON.stringify(
           getCustomerAuth({
             amount,
@@ -161,7 +161,7 @@ export default function Payment() {
     try {
       const res = await fetch(`${API_BASE}/api/payment-request`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getCustomerHeaders(),
         body: JSON.stringify(
           getCustomerAuth({
             amount,
