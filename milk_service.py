@@ -37,37 +37,27 @@ SCOPES = [
     "https://www.googleapis.com/auth/spreadsheets"
 ]
 
-google_creds_json = os.getenv(
-    "GOOGLE_CREDS_JSON"
-)
-print("8")
+google_creds_json = os.getenv("GOOGLE_CREDS_JSON")
+
 print("GOOGLE_CREDS_JSON:", bool(google_creds_json))
 
 if google_creds_json:
-
-    creds_dict = json.loads(
-        google_creds_json
-    )
+    creds_dict = json.loads(google_creds_json)
 
     creds = Credentials.from_service_account_info(
         creds_dict,
-        scopes=SCOPES
+        scopes=SCOPES,
     )
-
 else:
-
     creds = Credentials.from_service_account_file(
         "service_account.json",
-        scopes=SCOPES
+        scopes=SCOPES,
     )
 
 client = gspread.authorize(creds)
-print("10")
 
-SPREADSHEET_ID = os.getenv(
-    "SPREADSHEET_ID"
-)
-print("9")
+SPREADSHEET_ID = os.getenv("SPREADSHEET_ID")
+
 print("SPREADSHEET_ID:", SPREADSHEET_ID)
 
 if not SPREADSHEET_ID:
@@ -1918,3 +1908,4 @@ def create_daily_backup_if_needed():
             "created": False,
             "message": "❌ Automatic daily backup failed.",
         }
+        
