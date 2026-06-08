@@ -14,7 +14,7 @@ import FloatingBottomNav from '../components/FloatingBottomNav'
 
 const API_BASE = ['localhost', '127.0.0.1'].includes(window.location.hostname)
   ? 'http://127.0.0.1:5000'
-  : 'https://milk-connect-powered-by-milk-assistant.onrender.com'
+  : 'https://milk-connect-backend.onrender.com'
 
 export default function Calendar() {
   const navigate = useNavigate()

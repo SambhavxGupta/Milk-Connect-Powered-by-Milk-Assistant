@@ -23,7 +23,7 @@ import { getAdminHeaders } from '../utils/auth'
 
 const API_BASE = ['localhost', '127.0.0.1'].includes(window.location.hostname)
   ? 'http://127.0.0.1:5000'
-  : 'https://milk-connect-powered-by-milk-assistant.onrender.com'
+  : 'https://milk-connect-backend.onrender.com'
 
 const DELIVERY_BOY_WHATSAPP = '917022790646'
 const EXTRA_MILK = 0.5
