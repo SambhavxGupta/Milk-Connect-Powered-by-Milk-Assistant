@@ -273,6 +273,9 @@ def get_customer_info(mobile):
     pin_col = find_exact_column(headers, ["login pin"])
     pin_salt_col = find_exact_column(headers, ["pin salt"])
     pin_hash_col = find_exact_column(headers, ["pin hash"])
+    print("PIN COLUMN:", pin_col)
+    print("PIN SALT COLUMN:", pin_salt_col)
+    print("PIN HASH COLUMN:", pin_hash_col)
 
     if mobile_col is None:
         return None
