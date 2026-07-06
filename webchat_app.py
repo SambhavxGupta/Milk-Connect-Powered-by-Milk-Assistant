@@ -346,6 +346,7 @@ def api_login():
 
 
     result = verify_customer_login(mobile, pin)
+    print("LOGIN RESULT:", result)
     print("VERIFY RESULT:", result)
     if not result["success"]:
         mobile_fail = register_failed_attempt(mobile_key)
