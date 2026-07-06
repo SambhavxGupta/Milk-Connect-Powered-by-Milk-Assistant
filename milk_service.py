@@ -844,6 +844,11 @@ def verify_customer_login(mobile, pin):
         }
 
     customer = get_customer_info(mobile)
+    print("=================================")
+    print("MOBILE:", mobile)
+    print("CUSTOMER:", customer)
+    print("ENTERED PIN:", entered_pin)
+    print("=================================")
     print("=" * 50)
     print(customer)
     print("=" * 50)
@@ -861,7 +866,10 @@ def verify_customer_login(mobile, pin):
             "success": False,
             "message": "❌ Login PIN is not set for this customer. Please contact admin.",
         }
-
+    print("Stored Login PIN:", customer.get("login_pin"))
+    print("Stored Salt:", customer.get("pin_salt"))
+    print("Stored Hash:", customer.get("pin_hash"))
+    print("PIN MATCH:", customer_pin_matches(customer, entered_pin))
     if not customer_pin_matches(customer, entered_pin):
         return {
             "success": False,
