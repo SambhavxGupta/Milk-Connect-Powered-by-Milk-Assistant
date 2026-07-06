@@ -262,7 +262,7 @@ def get_customer_info(mobile):
         return None
 
     headers = all_values[0]
-
+    print(headers)
     name_col = find_column(headers, ["name"])
     mobile_col = find_column(headers, ["mobile", "phone"])
     status_col = find_column(headers, ["status"])
@@ -271,6 +271,7 @@ def get_customer_info(mobile):
     balance_col = find_column(headers, ["balance"])
 
     pin_col = find_exact_column(headers, ["login pin"])
+    print("PIN COLUMN =", pin_col)
     pin_salt_col = find_exact_column(headers, ["pin salt"])
     pin_hash_col = find_exact_column(headers, ["pin hash"])
     print("PIN COLUMN:", pin_col)
@@ -843,6 +844,9 @@ def verify_customer_login(mobile, pin):
         }
 
     customer = get_customer_info(mobile)
+    print("=" * 50)
+    print(customer)
+    print("=" * 50)
     print("Customer:", customer)
     print("Entered PIN:", pin)
 
