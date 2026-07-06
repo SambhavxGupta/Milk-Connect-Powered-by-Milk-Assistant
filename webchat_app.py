@@ -321,6 +321,10 @@ def api_login():
 
     mobile = clean_mobile(mobile)
 
+    print("LOGIN ATTEMPT")
+    print("Mobile:", mobile)
+    print("PIN:", pin)
+
     if not is_valid_mobile(mobile):
         return validation_error("❌ Enter a valid 10-digit mobile number.")
 
@@ -329,10 +333,10 @@ def api_login():
 
     client_ip = get_client_ip()
     mobile_key = f"customer-login-mobile:{mobile}"
-    ip_key = f"customer-login-ip:{client_ip}"
+    
 
     mobile_limit = check_rate_limit(mobile_key)
-    ip_limit = check_rate_limit(ip_key)
+   
 
     if not mobile_limit["allowed"]:
         return jsonify({
@@ -340,25 +344,20 @@ def api_login():
             "message": mobile_limit["message"],
         }), 429
 
-    if not ip_limit["allowed"]:
-        return jsonify({
-            "success": False,
-            "message": ip_limit["message"],
-        }), 429
 
     result = verify_customer_login(mobile, pin)
-
+    print("VERIFY RESULT:", result)
     if not result["success"]:
         mobile_fail = register_failed_attempt(mobile_key)
-        ip_fail = register_failed_attempt(ip_key)
+        
 
         return jsonify({
             "success": False,
-            "message": mobile_fail["message"] or ip_fail["message"] or result["message"],
+            "message": mobile_fail["message"] or result["message"],
         })
 
     clear_failed_attempts(mobile_key)
-    clear_failed_attempts(ip_key)
+    
 
     customer = result["customer"]
 
