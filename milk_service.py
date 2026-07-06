@@ -840,9 +840,8 @@ def verify_customer_login(mobile, pin):
         }
 
     customer = get_customer_info(mobile)
-
-        print("Customer:", customer)
-        print("Entered PIN:", pin)
+    print("Customer:", customer)
+    print("Entered PIN:", pin)
 
     if not customer:
         return {
