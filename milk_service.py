@@ -66,7 +66,7 @@ if not SPREADSHEET_ID:
     )
 
 spreadsheet = client.open_by_key(SPREADSHEET_ID)
-sheet = spreadsheet.sheet1
+sheet = spreadsheet.worksheet("Form Responses 1")
 print("11")
 
 print("✅ Google Sheet connected successfully")
