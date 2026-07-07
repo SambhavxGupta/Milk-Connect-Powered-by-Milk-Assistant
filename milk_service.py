@@ -258,10 +258,17 @@ def get_customer_info(mobile):
 
     all_values = sheet.get_all_values()
 
-    if not all_values:
+    header_row = None
+
+    for i, row in enumerate(all_values):
+        if "Mobile No" in row:
+            header_row = i
+            break
+
+    if header_row is None:
         return None
 
-    headers = all_values[0]
+    headers = all_values[header_row]
     print(headers)
     name_col = find_column(headers, ["name"])
     mobile_col = find_column(headers, ["mobile", "phone"])
@@ -281,7 +288,10 @@ def get_customer_info(mobile):
     if mobile_col is None:
         return None
 
-    for row_idx, row in enumerate(all_values[1:], start=2):
+    for row_idx, row in enumerate(
+    all_values[header_row + 1:],
+    start=header_row + 2
+):
         if len(row) <= mobile_col:
             continue
 
@@ -1233,7 +1243,10 @@ def get_all_customers_for_admin():
 
     customers = []
 
-    for row_idx, row in enumerate(all_values[1:], start=2):
+    for row_idx, row in enumerate(
+    all_values[header_row + 1:],
+    start=header_row + 2
+):
         if mobile_col is None or len(row) <= mobile_col:
             continue
 
