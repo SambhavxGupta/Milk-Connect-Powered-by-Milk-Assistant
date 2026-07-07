@@ -66,7 +66,7 @@ if not SPREADSHEET_ID:
     )
 
 spreadsheet = client.open_by_key(SPREADSHEET_ID)
-sheet = spreadsheet.worksheet("Form Responses 1")
+sheet = spreadsheet.worksheet("July-2026")
 print("11")
 
 print("✅ Google Sheet connected successfully")
@@ -1224,12 +1224,12 @@ def get_all_customers_for_admin():
 
     headers = all_values[0]
 
-    name_col = find_column(headers, ["name"])
-    mobile_col = find_column(headers, ["mobile", "phone"])
-    status_col = find_column(headers, ["status"])
-    liter_col = find_column(headers, ["liter", "litre"])
+    name_col = find_column(headers, ["names", "name"])
+    mobile_col = find_column(headers, ["mobile"])
+    status_col = find_column(headers, ["active", "status"])
+    liter_col = find_column(headers, ["subscribed-litre", "subscribed litre", "litre", "liter"])
     flat_col = find_column(headers, ["flat"])
-    balance_col = find_column(headers, ["balance"])
+    balance_col = find_column(headers, ["month-end balance", "remaining balance", "balance"])
 
     customers = []
 
