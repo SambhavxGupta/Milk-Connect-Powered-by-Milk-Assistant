@@ -96,6 +96,26 @@ def write_log(mobile, action, result):
 # HELPERS
 # =====================================================
 
+def get_sheet_headers_and_rows():
+    all_values = sheet.get_all_values()
+
+    if not all_values:
+        return None, [], None
+
+    header_row = None
+
+    for i, row in enumerate(all_values):
+        if "Mobile No" in row:
+            header_row = i
+            break
+
+    if header_row is None:
+        return None, [], None
+
+    headers = all_values[header_row]
+    rows = all_values[header_row + 1:]
+
+    return headers, rows, header_row
 
 def normalize_mobile(value):
 
@@ -1232,7 +1252,17 @@ def get_all_customers_for_admin():
     if not all_values:
         return []
 
-    headers = all_values[0]
+    header_row = None
+
+    for i, row in enumerate(all_values):
+        if "Mobile No" in row:
+            header_row = i
+            break
+
+    if header_row is None:
+        return []
+
+    headers = all_values[header_row]
 
     name_col = find_column(headers, ["names", "name"])
     mobile_col = find_column(headers, ["mobile"])
@@ -1261,11 +1291,13 @@ def get_all_customers_for_admin():
             else "Customer"
         )
 
-        status = (
-            row[status_col].strip()
-            if status_col is not None and len(row) > status_col
-            else ""
-        )
+        active = (
+        row[status_col].strip().upper()
+        if status_col is not None and len(row) > status_col
+        else ""
+    )
+
+        status = "Active" if active == "Y" else "Inactive"
 
         liter = (
             row[liter_col].strip()
@@ -1315,7 +1347,6 @@ def get_pending_payment_requests_for_admin():
     note_col = find_column(headers, ["note"])
 
     pending = []
-
     for row_idx, row in enumerate(rows[1:], start=2):
         status = (
             row[status_col].strip()
