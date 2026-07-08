@@ -12,7 +12,11 @@ export default function DashboardHeader() {
       <motion.div
         initial={{ opacity: 0, y: -15 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.4 }}
+        transition={{
+  type: "spring",
+  stiffness: 220,
+  damping: 22,
+}}
         className="flex items-start justify-between mb-6"
       >
         <div>

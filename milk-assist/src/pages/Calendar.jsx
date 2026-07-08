@@ -1,6 +1,8 @@
+import { motion } from "motion/react"
 import { showToast } from '../utils/toast'
 import { useEffect, useState } from 'react'
 import { getCustomerAuth, getCustomerHeaders } from '../utils/auth'
+import PageTransition from "../components/PageTransition";
 import {
   ArrowLeft,
   CalendarDays,
@@ -228,6 +230,7 @@ export default function Calendar() {
   const selectedHasActive = selectedDays.some((day) => !pausedDays.includes(day))
 
   return (
+    <PageTransition>
     <div className="min-h-screen bg-[#E9EDF2] flex justify-center items-center px-3 py-4">
       <div className="phone-shell">
         {popup && (
@@ -320,6 +323,7 @@ export default function Calendar() {
                 }
 
                 return (
+                  <PageTransition>
                   <button
                     key={cell.id}
                     onClick={() => toggleDay(day)}
@@ -341,6 +345,7 @@ export default function Calendar() {
                       {isPaused ? 'Ab' : formatLitres(dayQuantity)}
                     </p>
                   </button>
+                </PageTransition>
                 )
               })}
             </div>
@@ -450,5 +455,6 @@ export default function Calendar() {
         <FloatingBottomNav />
       </div>
     </div>
+  </PageTransition>
   )
 }

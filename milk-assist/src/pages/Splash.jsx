@@ -1,7 +1,9 @@
+import { motion } from "motion/react"
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Milk } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
+import PageTransition from "../components/PageTransition";
 
 export default function Splash() {
   const navigate = useNavigate()
@@ -18,6 +20,7 @@ const navTimer = setTimeout(() => navigate('/login'), 4500)
   }, [navigate])
 
   return (
+    <PageTransition>
     <div className="min-h-screen bg-[#E9EDF2] flex justify-center items-center px-3 py-4">
       <div className="phone-shell px-7 flex items-center justify-center">
         <AnimatePresence mode="wait">
@@ -27,7 +30,11 @@ const navTimer = setTimeout(() => navigate('/login'), 4500)
               initial={{ opacity: 0, scale: 0.92, y: 14 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.96, y: -8 }}
-              transition={{ duration: 0.45 }}
+              transition={{
+  type: "spring",
+  stiffness: 220,
+  damping: 22,
+}}
               className="text-center"
             >
               <div className="mx-auto w-24 h-24 rounded-[34px] bg-white/10 border border-white/10 flex items-center justify-center shadow-xl">
@@ -48,7 +55,11 @@ const navTimer = setTimeout(() => navigate('/login'), 4500)
               initial={{ opacity: 0, scale: 0.94, y: 10 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0 }}
-              transition={{ duration: 0.45 }}
+              transition={{
+  type: "spring",
+  stiffness: 220,
+  damping: 22,
+}}
               className="text-center"
             >
               <div className="relative inline-block">
@@ -72,5 +83,6 @@ const navTimer = setTimeout(() => navigate('/login'), 4500)
         </AnimatePresence>
       </div>
     </div>
+  </PageTransition>
   )
 }

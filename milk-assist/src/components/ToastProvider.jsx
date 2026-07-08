@@ -68,10 +68,28 @@ export default function ToastProvider() {
       {toast && (
         <motion.div
           key={toast.id}
-          initial={{ opacity: 0, y: -22, scale: 0.96 }}
-          animate={{ opacity: 1, y: 0, scale: 1 }}
-          exit={{ opacity: 0, y: -22, scale: 0.96 }}
-          transition={{ duration: 0.25, ease: 'easeOut' }}
+          initial={{
+  opacity: 0,
+  y: -30,
+  scale: 0.82,
+}}
+
+animate={{
+  opacity: 1,
+  y: 0,
+  scale: 1,
+}}
+
+exit={{
+  opacity: 0,
+  y: -20,
+  scale: 0.92,
+}}
+          transition={{
+  type: 'spring',
+  stiffness: 260,
+  damping: 22,
+}}
           className="fixed top-5 left-1/2 -translate-x-1/2 z-[9999] w-[92%] max-w-[390px]"
           style={{ '--toast-accent': style.accent }}
         >
@@ -106,15 +124,29 @@ export default function ToastProvider() {
 
   <div className="premium-toast-inner">
               <div className="flex items-center gap-3">
-                <div
-                  className="w-10 h-10 rounded-2xl flex items-center justify-center shrink-0"
-                  style={{
-                    background: `${style.accent}18`,
-                    border: `1px solid ${style.accent}55`,
-                    color: style.accent,
-                    boxShadow: `0 0 18px ${style.accent}35`,
-                  }}
+                <motion.div
+                    initial={{
+                      rotate: -25,
+                      scale: 0.5,
+                    }}
+                    animate={{
+                      rotate: 0,
+                      scale: 1,
+                    }}
+                    transition={{
+                      delay: 0.1,
+                      type: "spring",
+                      stiffness: 350,
+                    }}
+                    className="w-10 h-10 rounded-2xl flex items-center justify-center shrink-0"
+                    style={{
+                      background: `${style.accent}18`,
+                      border: `1px solid ${style.accent}55`,
+                      color: style.accent,
+                      boxShadow: `0 0 18px ${style.accent}35`,
+                    }}
                 >
+                </motion.div>  
                   {style.icon}
                 </div>
 
@@ -139,8 +171,8 @@ export default function ToastProvider() {
                 <X size={15} />
               </button>
             </div>
-          </div>
         </motion.div>
+
       )}
     </AnimatePresence>
   )

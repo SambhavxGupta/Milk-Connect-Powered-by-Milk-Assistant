@@ -1,4 +1,6 @@
+import { motion } from "motion/react"
 import { motion } from 'framer-motion'
+import PageTransition from "../components/PageTransition";
 import {
   AlertCircle,
   ChevronRight,
@@ -117,6 +119,7 @@ export default function Support() {
   ]
 
   return (
+    <PageTransition>
     <div className="min-h-screen bg-[#E9EDF2] flex justify-center items-start py-6">
       <div className="phone-shell relative overflow-hidden">
         <div className="luxury-glow-orb w-56 h-56 bg-[#D9FF57] top-[-90px] right-[-90px]" />
@@ -296,5 +299,6 @@ export default function Support() {
         <FloatingBottomNav />
       </div>
     </div>
+  </PageTransition>
   )
 }

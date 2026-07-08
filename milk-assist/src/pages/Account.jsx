@@ -1,3 +1,5 @@
+import PageTransition from "../components/PageTransition";
+import { motion } from "motion/react"
 import { motion } from 'framer-motion'
 import {
   ChevronRight,
@@ -59,6 +61,7 @@ export default function Account() {
   }
 
   return (
+    <PageTransition>
     <div className="min-h-screen bg-[#E9EDF2] flex justify-center items-start py-6">
       <div className="phone-shell relative overflow-hidden">
         <div className="luxury-glow-orb w-60 h-60 bg-[#D9FF57] top-[-100px] right-[-110px]" />
@@ -195,11 +198,13 @@ export default function Account() {
         <FloatingBottomNav />
       </div>
     </div>
+  </PageTransition>
   )
 }
 
 function MiniCard({ icon, label, value, highlight = false }) {
   return (
+    <PageTransition>
     <div className="glass-card rounded-[28px] p-4">
       <div className="w-11 h-11 rounded-2xl bg-[#D9FF57]/10 border border-[#D9FF57]/25 text-[#D9FF57] flex items-center justify-center mb-4">
         {icon}
@@ -215,11 +220,13 @@ function MiniCard({ icon, label, value, highlight = false }) {
         {value}
       </h2>
     </div>
+  </PageTransition>
   )
 }
 
 function ActionCard({ icon, title, subtitle, onClick }) {
   return (
+    <PageTransition>
     <motion.button
       variants={itemVariants}
       whileHover={{ scale: 1.015 }}
@@ -240,5 +247,6 @@ function ActionCard({ icon, title, subtitle, onClick }) {
 
       <ChevronRight size={18} className="text-white/35 shrink-0" />
     </motion.button>
+  </PageTransition>
   )
 }

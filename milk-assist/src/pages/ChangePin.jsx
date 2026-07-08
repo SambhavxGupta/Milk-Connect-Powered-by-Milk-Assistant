@@ -1,9 +1,11 @@
 import { useState } from 'react'
 import { ArrowLeft, LockKeyhole, ShieldCheck } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
+import { motion } from "motion/react"
 import FloatingBottomNav from '../components/FloatingBottomNav'
 import { showToast } from '../utils/toast'
 import { getCustomerAuth, getCustomerHeaders } from '../utils/auth'
+import PageTransition from "../components/PageTransition";
 
 const API_BASE = ['localhost', '127.0.0.1'].includes(window.location.hostname)
   ? 'http://127.0.0.1:5000'
@@ -76,6 +78,7 @@ export default function ChangePin() {
   }
 
   return (
+    <PageTransition>
     <div className="min-h-screen bg-[#E9EDF2] flex justify-center items-center px-3 py-4">
       <div className="phone-shell">
         <div className="h-full overflow-y-auto px-6 pt-8 pb-32 custom-scrollbar">
@@ -192,5 +195,6 @@ export default function ChangePin() {
         <FloatingBottomNav />
       </div>
     </div>
+  </PageTransition>
   )
 }

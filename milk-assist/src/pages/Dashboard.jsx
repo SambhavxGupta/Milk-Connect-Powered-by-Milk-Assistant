@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import {   useEffect, useState } from 'react'
 import { motion } from 'framer-motion'
 import {
   CalendarDays,
@@ -12,6 +12,7 @@ import { useNavigate } from 'react-router-dom'
 import DashboardHeader from '../components/DashboardHeader'
 import DeliveryCard from '../components/DeliveryCard'
 import QuickActions from '../components/QuickActions'
+import PageTransition from "../components/PageTransition";
 import FloatingBottomNav from '../components/FloatingBottomNav'
 
 import { getCustomerAuth, getCustomerHeaders } from '../utils/auth'
@@ -92,6 +93,7 @@ export default function Dashboard() {
   }
 
   return (
+    <PageTransition>
     <div className="min-h-screen bg-[#E9EDF2] flex justify-center items-center py-6">
       <div className="phone-shell relative overflow-hidden">
         <div className="luxury-glow-orb w-56 h-56 bg-[#D9FF57] top-[-90px] right-[-100px]" />
@@ -173,18 +175,44 @@ export default function Dashboard() {
         <FloatingBottomNav />
       </div>
     </div>
+  </PageTransition>
   )
 }
 
 function MiniStat({ icon, label, value }) {
   return (
-    <div className="glass-card rounded-[28px] p-4">
+    <PageTransition>
+        <motion.div
+          whileHover={{
+            scale: 1.02,
+            y: -3,
+          }}
+          whileTap={{
+            scale: 0.98,
+          }}
+          transition={{
+            duration: 0.2,
+          }}
+          className="glass-card premium-card-rise rounded-[28px] p-5"
+        
+          whileHover={{
+              scale: 1.02,
+              y: -3
+          }}
+          whileTap={{
+              scale: 0.98
+          }}
+          transition={{
+              duration: .2
+          }}
+        >
       <div className="w-11 h-11 rounded-2xl bg-[#D9FF57]/10 border border-[#D9FF57]/25 text-[#D9FF57] flex items-center justify-center mb-4">
         {icon}
       </div>
-
-      <p className="text-white/40 text-xs">{label}</p>
-      <h2 className="text-2xl font-bold mt-1">{value}</h2>
-    </div>
+      
+        <p className="text-white/40 text-xs">{label}</p>
+        <h2 className="text-2xl font-bold mt-1">{value}</h2>
+    </motion.div>
+  </PageTransition>
   )
 }

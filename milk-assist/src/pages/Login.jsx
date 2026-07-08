@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { ArrowRight, LockKeyhole, Phone, Sparkles } from 'lucide-react'
 import { AnimatePresence, motion } from 'framer-motion'
 import { showToast } from '../utils/toast'
+import PageTransition from "../components/PageTransition";
 
 const API_BASE = ['localhost', '127.0.0.1'].includes(window.location.hostname)
   ? 'http://127.0.0.1:5000'
@@ -88,6 +89,7 @@ export default function Login() {
   }
 
   return (
+    <PageTransition>
     <div className="min-h-screen bg-[#E9EDF2] flex justify-center items-start py-6">
       <div className="phone-shell px-7 pt-10 pb-10 bg-gradient-to-b from-[#4E5969] via-[#2B3340] to-[#171B24] overflow-hidden">
         <div className="absolute top-[-130px] right-[-90px] w-[280px] h-[280px] bg-[#D9FF57]/14 blur-[100px] rounded-full" />
@@ -97,7 +99,11 @@ export default function Login() {
         <motion.div
           initial={{ opacity: 0, y: 18 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.55 }}
+          transition={{
+  type: "spring",
+  stiffness: 220,
+  damping: 22,
+}}
           className="relative z-10 min-h-[720px] flex flex-col"
         >
           <div className="flex-1 flex flex-col items-center justify-center text-center">
@@ -302,5 +308,6 @@ export default function Login() {
         </motion.div>
       </div>
     </div>
+  </PageTransition>
   )
 }

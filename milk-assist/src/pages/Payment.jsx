@@ -1,6 +1,8 @@
+import { motion } from "motion/react"
 import { useEffect, useState } from 'react'
 import { motion } from 'framer-motion'
 import QRCode from 'qrcode'
+import PageTransition from "../components/PageTransition";
 import {
   AlertTriangle,
   ArrowLeft,
@@ -255,6 +257,7 @@ export default function Payment() {
   }
 
   return (
+    <PageTransition>
     <div className="min-h-screen bg-[#E9EDF2] flex justify-center items-start py-6">
       <div className="phone-shell relative overflow-hidden">
         <div className="luxury-glow-orb w-60 h-60 bg-[#D9FF57] top-[-100px] right-[-100px]" />
@@ -512,5 +515,6 @@ export default function Payment() {
         <FloatingBottomNav />
       </div>
     </div>
+  </PageTransition>
   )
 }

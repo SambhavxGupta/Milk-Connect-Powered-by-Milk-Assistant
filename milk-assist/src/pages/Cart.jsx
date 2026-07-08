@@ -4,7 +4,8 @@ import { Minus, Plus, ShoppingBag, Trash2 } from 'lucide-react'
 import { AppContext } from '../context/AppContext'
 import BackButton from '../components/BackButton'
 import FloatingBottomNav from '../components/FloatingBottomNav'
-
+import { motion } from "motion/react"
+import PageTransition from "../components/PageTransition";
 export default function Cart() {
   const { cart, setCart, orders, setOrders } = useContext(AppContext)
   const navigate = useNavigate()
@@ -53,6 +54,7 @@ export default function Cart() {
 }
 
   return (
+    <PageTransition>
     <div className="min-h-screen bg-[#E9EDF2] flex justify-center items-start py-6">
       <div className="phone-shell px-5 pt-8 pb-28">
         <div className="flex items-center justify-between mb-7">
@@ -179,5 +181,6 @@ export default function Cart() {
         <FloatingBottomNav />
       </div>
     </div>
+  </PageTransition>
   )
 }

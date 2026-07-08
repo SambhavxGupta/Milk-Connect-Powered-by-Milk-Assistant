@@ -1,5 +1,7 @@
+import { motion } from "motion/react"
 import { useEffect, useState } from 'react'
 import { motion } from 'framer-motion'
+import PageTransition from "../components/PageTransition";
 import {
   ArrowLeft,
   CheckCircle,
@@ -328,6 +330,7 @@ export default function AdminDashboard() {
   }
 
   return (
+    <PageTransition>
     <div className="min-h-screen bg-[#E9EDF2] flex justify-center items-start py-6">
       <div className="phone-shell relative overflow-hidden">
         <div className="luxury-glow-orb w-60 h-60 bg-[#D9FF57] top-[-100px] right-[-110px]" />
@@ -608,6 +611,7 @@ export default function AdminDashboard() {
         </motion.div>
       </div>
     </div>
+  </PageTransition>
   )
 }
 
@@ -642,23 +646,27 @@ function SmallMetric({ label, value, danger = false, warning = false }) {
   if (warning) valueClass = 'text-yellow-100'
 
   return (
-    <div className="rounded-2xl bg-white/8 border border-white/10 p-3">
-      <p className="text-white/40 text-xs">{label}</p>
-      <h3 className={`text-xl font-bold mt-1 ${valueClass}`}>{value}</h3>
-    </div>
+    <PageTransition>
+      <div className="rounded-2xl bg-white/8 border border-white/10 p-3">
+        <p className="text-white/40 text-xs">{label}</p>
+        <h3 className={`text-xl font-bold mt-1 ${valueClass}`}>{value}</h3>
+      </div>
+    </PageTransition>
   )
 }
 
 function StatCard({ icon, label, value }) {
   return (
-    <div className="glass-card rounded-[26px] p-4">
-      <div className="w-11 h-11 rounded-2xl bg-[#D9FF57]/10 border border-[#D9FF57]/25 flex items-center justify-center text-[#D9FF57] mb-4">
-        {icon}
-      </div>
+    <PageTransition>
+      <div className="glass-card rounded-[26px] p-4">
+        <div className="w-11 h-11 rounded-2xl bg-[#D9FF57]/10 border border-[#D9FF57]/25 flex items-center justify-center text-[#D9FF57] mb-4">
+          {icon}
+        </div>
 
-      <p className="text-white/45 text-xs mb-1">{label}</p>
-      <h2 className="text-2xl font-bold">{value ?? 0}</h2>
-    </div>
+        <p className="text-white/45 text-xs mb-1">{label}</p>
+        <h2 className="text-2xl font-bold">{value ?? 0}</h2>
+      </div>
+    </PageTransition>   
   )
 }
 
@@ -678,6 +686,7 @@ function CustomerCard({ customer }) {
   }
 
   return (
+    <PageTransition>
     <div className="rounded-2xl bg-white/8 border border-white/10 p-3">
       <div className="flex items-start justify-between gap-3">
         <div>
@@ -713,11 +722,13 @@ function CustomerCard({ customer }) {
         </div>
       </div>
     </div>
+  </PageTransition>
   )
 }
 
 function PaymentCard({ payment, onUpdate }) {
   return (
+    <PageTransition>
     <div className="rounded-2xl bg-white/8 border border-white/10 p-3">
       <div className="flex items-start justify-between gap-3">
         <div>
@@ -751,11 +762,14 @@ function PaymentCard({ payment, onUpdate }) {
         </button>
       </div>
     </div>
+  </PageTransition>
   )
 }
 
 function DeliveryItem({ item }) {
   return (
+    
+    <PageTransition>
     <div className="rounded-2xl bg-white/8 border border-white/10 p-3 flex items-center justify-between gap-3">
       <div>
         <h3 className="font-bold">{item.name}</h3>
@@ -777,5 +791,6 @@ function DeliveryItem({ item }) {
         <p className="text-white/35 text-xs mt-1">{item.status}</p>
       </div>
     </div>
+  </PageTransition>
   )
 }

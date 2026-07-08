@@ -1,9 +1,10 @@
+import { motion } from "motion/react"
 import { useState, useContext } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { ArrowLeft, Bookmark, CheckCircle, Leaf, Home as HomeIcon } from 'lucide-react'
 import { motion } from 'framer-motion'
 import { AppContext } from '../context/AppContext'
-
+import PageTransition from "../components/PageTransition";
 export default function ProductDetail() {
   const navigate = useNavigate()
   const { productName } = useParams()
@@ -54,6 +55,7 @@ export default function ProductDetail() {
   }
 
   return (
+    <PageTransition>
     <div className="min-h-screen bg-[var(--color-dark-bg)] flex justify-center items-center py-6">
       <div className="w-full max-w-[400px] h-[850px] max-h-[95vh] bg-[var(--color-dark-bg)] relative overflow-hidden flex flex-col shadow-2xl rounded-[40px] border border-white/5">
         
@@ -170,5 +172,6 @@ export default function ProductDetail() {
 
       </div>
     </div>
+  </PageTransition>
   )
 }

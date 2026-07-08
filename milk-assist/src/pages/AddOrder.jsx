@@ -1,7 +1,9 @@
+import { motion } from "motion/react"
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { ArrowLeft, Bookmark, ShoppingBag, ArrowRight } from 'lucide-react'
 import { motion } from 'framer-motion'
+import PageTransition from "../components/PageTransition";
 
 export default function AddOrder() {
   const navigate = useNavigate()
@@ -42,6 +44,7 @@ export default function AddOrder() {
   const quantities = ['500 ml', '1 Litre', '2 Litre']
 
   return (
+    <PageTransition>
     <div className="min-h-screen bg-[var(--color-dark-bg)] flex justify-center items-center py-6">
       <div className="w-full max-w-[400px] h-[850px] max-h-[95vh] bg-[var(--color-dark-bg)] relative overflow-hidden flex flex-col shadow-2xl rounded-[40px] border border-white/5">
         
@@ -162,5 +165,6 @@ export default function AddOrder() {
 
       </div>
     </div>
+  </PageTransition>
   )
 }

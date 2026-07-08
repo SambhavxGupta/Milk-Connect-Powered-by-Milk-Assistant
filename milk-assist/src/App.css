@@ -1,3 +1,433 @@
-/* Global App Styles */
-/* Removed default Vite styles to prevent conflicts */
+:root {
+  --color-dark-bg: #1F2430;
+  --color-dark-card: #2E3642;
+  --color-muted: #59616F;
+  --color-accent: #D9FF57;
+  --color-light-bg: #E9EDF2;
+}
 
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  margin: 0;
+  font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  background: var(--color-light-bg);
+}
+
+button,
+a {
+  cursor: pointer;
+}
+
+.phone-shell {
+  width: 430px;
+  max-width: 95vw;
+  min-height: 780px;
+  border-radius: 38px;
+  background:
+    radial-gradient(circle at top right, rgba(217, 255, 87, 0.14), transparent 32%),
+    radial-gradient(circle at bottom left, rgba(120, 160, 255, 0.1), transparent 35%),
+    linear-gradient(180deg, #59616f 0%, #2e3642 45%, #1f2430 100%);
+  color: white;
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 30px 80px rgba(0, 0, 0, 0.35);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.glass-card {
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  backdrop-filter: blur(22px);
+  -webkit-backdrop-filter: blur(22px);
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.28);
+}
+
+.accent {
+  color: var(--color-accent);
+}
+
+.accent-bg {
+  background: var(--color-accent);
+}
+
+.press {
+  transition: 0.18s ease;
+}
+
+.press:active {
+  transform: scale(0.96);
+}
+
+.custom-scrollbar::-webkit-scrollbar {
+  width: 4px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.18);
+  border-radius: 999px;
+}
+
+input {
+  color: white;
+}
+
+input::placeholder {
+  color: rgba(255, 255, 255, 0.4);
+}
+
+.premium-toast {
+  position: relative;
+  overflow: hidden;
+  border-radius: 28px;
+  padding: 1px;
+  background:
+    linear-gradient(135deg, rgba(217, 255, 87, 0.18), rgba(255, 255, 255, 0.05)),
+    rgba(31, 36, 48, 0.92);
+  box-shadow:
+    0 24px 70px rgba(0, 0, 0, 0.55),
+    0 0 34px rgba(217, 255, 87, 0.18);
+}
+
+.premium-toast::before {
+  content: "";
+  position: absolute;
+  inset: 1px;
+  z-index: 1;
+  border-radius: 27px;
+  background:
+    radial-gradient(circle at top left, rgba(217, 255, 87, 0.14), transparent 34%),
+    radial-gradient(circle at bottom right, rgba(217, 255, 87, 0.08), transparent 36%),
+    linear-gradient(135deg, #2e3642 0%, #1f2430 48%, #101620 100%);
+}
+
+.premium-toast-border {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+.premium-toast-glow-line {
+  fill: none;
+  stroke: var(--toast-accent);
+  stroke-width: 5;
+  stroke-linecap: round;
+  stroke-dasharray: 140 860;
+  stroke-dashoffset: 0;
+  opacity: 0.45;
+  filter: drop-shadow(0 0 12px var(--toast-accent))
+          drop-shadow(0 0 22px var(--toast-accent));
+  animation: toast-border-run 3.6s linear forwards;
+}
+
+.premium-toast-star-line {
+  fill: none;
+  stroke: white;
+  stroke-width: 2.8;
+  stroke-linecap: round;
+  stroke-dasharray: 34 966;
+  stroke-dashoffset: 0;
+  opacity: 1;
+  filter: drop-shadow(0 0 8px white)
+          drop-shadow(0 0 18px var(--toast-accent))
+          drop-shadow(0 0 30px var(--toast-accent));
+  animation: toast-border-run 3.6s linear forwards;
+}
+
+.premium-toast-inner {
+  position: relative;
+  z-index: 4;
+  min-height: 76px;
+  padding: 14px;
+  border-radius: 27px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  backdrop-filter: blur(18px);
+  background: rgba(255, 255, 255, 0.015);
+}
+
+@keyframes toast-border-run {
+  0% {
+    stroke-dashoffset: 0;
+    opacity: 0;
+  }
+
+  8% {
+    opacity: 1;
+  }
+
+  92% {
+    opacity: 1;
+  }
+
+  100% {
+    stroke-dashoffset: -1000;
+    opacity: 0;
+  }
+}
+
+.payment-safety-card {
+  position: relative;
+  overflow: hidden;
+  transition: all 0.45s ease;
+}
+
+.payment-safety-card::before {
+  content: "";
+  position: absolute;
+  inset: 1px;
+  border-radius: 27px;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.4s ease;
+}
+
+.payment-safety-alert {
+  border-color: rgba(248, 113, 113, 0.65) !important;
+  box-shadow:
+    0 0 26px rgba(248, 113, 113, 0.45),
+    0 0 70px rgba(248, 113, 113, 0.25),
+    inset 0 0 28px rgba(248, 113, 113, 0.12);
+  animation: safety-attention-shake 0.55s ease-in-out 0s 3,
+             safety-danger-pulse 1.15s ease-in-out 0s 4;
+}
+
+.payment-safety-alert::before {
+  opacity: 1;
+  background:
+    linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.35), transparent),
+    radial-gradient(circle at top left, rgba(248, 113, 113, 0.32), transparent 34%),
+    radial-gradient(circle at bottom right, rgba(248, 113, 113, 0.22), transparent 38%);
+  animation: safety-red-sweep 1.2s ease-in-out 0s 4;
+}
+
+.payment-safety-alert::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 28px;
+  pointer-events: none;
+  border: 1.5px solid rgba(248, 113, 113, 0.95);
+  box-shadow:
+    0 0 12px rgba(248, 113, 113, 0.9),
+    0 0 28px rgba(248, 113, 113, 0.55);
+  animation: safety-border-flash 0.7s ease-in-out 0s 6;
+}
+
+@keyframes safety-attention-shake {
+  0%, 100% {
+    transform: translateX(0);
+  }
+
+  25% {
+    transform: translateX(-3px);
+  }
+
+  50% {
+    transform: translateX(3px);
+  }
+
+  75% {
+    transform: translateX(-2px);
+  }
+}
+
+@keyframes safety-danger-pulse {
+  0%, 100% {
+    filter: brightness(1);
+  }
+
+  50% {
+    filter: brightness(1.35);
+  }
+}
+
+@keyframes safety-red-sweep {
+  0% {
+    transform: translateX(-80%);
+    opacity: 0;
+  }
+
+  25% {
+    opacity: 1;
+  }
+
+  100% {
+    transform: translateX(80%);
+    opacity: 0;
+  }
+}
+
+@keyframes safety-border-flash {
+  0%, 100% {
+    opacity: 0.35;
+  }
+
+  50% {
+    opacity: 1;
+  }
+}
+
+/* Towards polishing the app */
+
+/* =====================================================
+   PREMIUM MOTION + UI POLISH
+===================================================== */
+
+.premium-page-enter {
+  animation: premium-page-enter 0.55s ease both;
+}
+
+@keyframes premium-page-enter {
+  from {
+    opacity: 0;
+    transform: translateY(18px) scale(0.985);
+    filter: blur(6px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+    filter: blur(0);
+  }
+}
+
+.premium-card-rise {
+  animation: premium-card-rise 0.65s ease both;
+}
+
+@keyframes premium-card-rise {
+  from {
+    opacity: 0;
+    transform: translateY(18px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.luxury-glow-orb {
+  position: absolute;
+  border-radius: 999px;
+  pointer-events: none;
+  filter: blur(70px);
+  opacity: 0.28;
+  animation: luxury-orb-float 7s ease-in-out infinite alternate;
+}
+
+@keyframes luxury-orb-float {
+  from {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+
+  to {
+    transform: translate3d(-14px, 18px, 0) scale(1.12);
+  }
+}
+
+.neon-edge {
+  position: relative;
+  overflow: hidden;
+}
+
+.neon-edge::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 1px;
+  background: linear-gradient(
+    135deg,
+    rgba(217, 255, 87, 0.75),
+    rgba(255, 255, 255, 0.08),
+    rgba(217, 255, 87, 0.35)
+  );
+  -webkit-mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+}
+
+.soft-shine {
+  position: relative;
+  overflow: hidden;
+}
+
+.soft-shine::before {
+  content: "";
+  position: absolute;
+  top: -120%;
+  left: -80%;
+  width: 80%;
+  height: 300%;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.13),
+    transparent
+  );
+  transform: rotate(22deg);
+  animation: soft-shine-move 4.8s ease-in-out infinite;
+}
+
+@keyframes soft-shine-move {
+  0%, 45% {
+    transform: translateX(-120%) rotate(22deg);
+  }
+
+  100% {
+    transform: translateX(360%) rotate(22deg);
+  }
+}
+
+.tap-scale {
+  transition: transform 0.18s ease, filter 0.18s ease;
+}
+
+.tap-scale:active {
+  transform: scale(0.965);
+  filter: brightness(1.08);
+}
+
+.floating-icon {
+  animation: floating-icon 2.7s ease-in-out infinite;
+}
+
+@keyframes floating-icon {
+  0%, 100% {
+    transform: translateY(0);
+  }
+
+  50% {
+    transform: translateY(-5px);
+  }
+}
+
+.premium-divider {
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(217, 255, 87, 0.35),
+    transparent
+  );
+}

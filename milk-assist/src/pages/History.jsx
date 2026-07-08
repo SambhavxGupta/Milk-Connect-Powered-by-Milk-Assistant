@@ -1,6 +1,8 @@
+import { motion } from "motion/react"
 import { useEffect, useState } from 'react'
 import { motion } from 'framer-motion'
 import { getCustomerAuth, getCustomerHeaders } from '../utils/auth'
+import PageTransition from "../components/PageTransition";
 import {
   ArrowLeft,
   CheckCircle,
@@ -166,6 +168,7 @@ export default function History() {
   
 
   return (
+    <PageTransition>
     <div className="min-h-screen bg-[#E9EDF2] flex justify-center items-start py-6">
       <div className="phone-shell relative overflow-hidden">
         <div className="luxury-glow-orb w-60 h-60 bg-[#D9FF57] top-[-100px] right-[-110px]" />
@@ -296,12 +299,14 @@ export default function History() {
         <FloatingBottomNav />
       </div>
     </div>
+  </PageTransition>
   )
 }
 
 function PaymentHistory({ payments, getPaymentStatusStyle }) {
   if (payments.length === 0) {
     return (
+      <PageTransition>
       <motion.div
         variants={itemVariants}
         className="glass-card rounded-[28px] p-6 text-center"
@@ -312,10 +317,12 @@ function PaymentHistory({ payments, getPaymentStatusStyle }) {
           Your payment requests will appear here after you tap “I have paid”.
         </p>
       </motion.div>
+    </PageTransition>
     )
   }
 
   return (
+    <PageTransition>
     <div className="space-y-4">
       {payments.map((payment, index) => {
         const status = getPaymentStatusStyle(payment.status)
@@ -361,12 +368,14 @@ function PaymentHistory({ payments, getPaymentStatusStyle }) {
         )
       })}
     </div>
+  </PageTransition>
   )
 }
 
 function ActionHistory({ actions, getActionIcon, getActionTitle }) {
   if (actions.length === 0) {
     return (
+      <PageTransition>
       <motion.div
         variants={itemVariants}
         className="glass-card rounded-[28px] p-6 text-center"
@@ -377,12 +386,14 @@ function ActionHistory({ actions, getActionIcon, getActionTitle }) {
           Pause, resume and quantity changes will appear here.
         </p>
       </motion.div>
+    </PageTransition>
     )
   }
 
   return (
-    <div className="space-y-4">
-      {actions.map((action, index) => (
+    <PageTransition>
+      <div className="space-y-4">
+        {actions.map((action, index) => (
         <motion.div
           key={index}
           variants={itemVariants}
@@ -413,6 +424,7 @@ function ActionHistory({ actions, getActionIcon, getActionTitle }) {
         </motion.div>
       ))}
     </div>
+  </PageTransition>
   )
 }
 
@@ -420,7 +432,20 @@ function ActionHistory({ actions, getActionIcon, getActionTitle }) {
 
 function StatCard({ icon, label, value, highlight = false }) {
   return (
-    <div className="glass-card rounded-[28px] p-4">
+    <PageTransition>
+    <motion.div
+className="glass-card premium-card-rise"
+whileHover={{
+    scale: 1.02,
+    y: -3
+}}
+whileTap={{
+    scale: 0.98
+}}
+transition={{
+    duration: .2
+}}
+>
       <div className="w-11 h-11 rounded-2xl bg-[#D9FF57]/10 border border-[#D9FF57]/25 text-[#D9FF57] flex items-center justify-center mb-4">
         {icon}
       </div>
@@ -434,7 +459,8 @@ function StatCard({ icon, label, value, highlight = false }) {
       >
         {value}
       </h2>
-    </div>
+    </motion.div>
+  </PageTransition>
   )
 }
 
