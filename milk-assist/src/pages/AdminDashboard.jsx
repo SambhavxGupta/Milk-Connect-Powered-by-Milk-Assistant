@@ -489,12 +489,12 @@ export default function AdminDashboard() {
 
                 <div className="grid grid-cols-2 gap-3 mt-4">
                   <SmallMetric
-                    label="Total Balance"
+                    label="Remaining"
                     value={`₹${dashboard?.total_balance || 0}`}
                   />
 
                   <SmallMetric
-                    label="Pending Amount"
+                    label="Payment Requests"
                     value={`₹${dashboard?.pending_payment_amount || 0}`}
                     warning
                   />

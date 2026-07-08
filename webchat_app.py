@@ -369,6 +369,8 @@ def api_login():
         "flat_no": customer.get("flat_no", ""),
         "liter": customer.get("liter", "1"),
         "remaining_balance": customer.get("remaining_balance", "0"),
+        "month_end_balance": customer.get("month_end_balance", "0"),
+        "pending_payments": customer.get("pending_payments", "0"),
         "status": customer.get("status", ""),
     }
 
@@ -384,6 +386,8 @@ def api_login():
         "flat_no": customer_data["flat_no"],
         "liter": customer_data["liter"],
         "remaining_balance": customer_data["remaining_balance"],
+        "month_end_balance": customer_data["month_end_balance"],
+        "pending_payments": customer_data["pending_payments"],
         "status": customer_data["status"],
     })
 

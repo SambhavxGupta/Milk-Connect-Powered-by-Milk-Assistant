@@ -117,6 +117,20 @@ def get_sheet_headers_and_rows():
 
     return headers, rows, header_row
 
+
+def get_customer_values_from_rows(row_number):
+    headers, rows, header_row = get_sheet_headers_and_rows()
+
+    if headers is None or header_row is None:
+        return headers, [], header_row
+
+    row_offset = row_number - (header_row + 2)
+
+    if row_offset < 0 or row_offset >= len(rows):
+        return headers, [], header_row
+
+    return headers, rows[row_offset], header_row
+
 def normalize_mobile(value):
 
     try:
@@ -149,6 +163,59 @@ def find_exact_column(headers, exact_names):
             return idx
 
     return None
+
+
+def find_first_exact_column(headers, exact_names):
+    for exact_name in exact_names:
+        col = find_exact_column(headers, [exact_name])
+        if col is not None:
+            return col
+
+    return None
+
+
+def find_preferred_column(headers, exact_names, fallback_keywords=None):
+    col = find_first_exact_column(headers, exact_names)
+    if col is not None:
+        return col
+
+    for keyword in fallback_keywords or []:
+        col = find_column(headers, [keyword])
+        if col is not None:
+            return col
+
+    return None
+
+
+def get_remaining_balance_column(headers):
+    return find_preferred_column(
+        headers,
+        ["remaining balance"],
+        ["remaining balance", "balance"],
+    )
+
+
+def get_month_end_balance_column(headers):
+    return find_preferred_column(
+        headers,
+        ["month-end balance", "month end balance", "monthend balance"],
+        ["month-end balance", "month end balance", "monthend balance"],
+    )
+
+
+def get_pending_payments_column(headers):
+    return find_preferred_column(
+        headers,
+        ["pending payments", "pending payment", "pending amount"],
+        ["pending payments", "pending payment", "pending amount"],
+    )
+
+
+def get_row_value(row, col, default="0"):
+    if col is not None and len(row) > col:
+        return str(row[col]).strip()
+
+    return default
 
 # =====================================================
 # SECURE PIN HASHING
@@ -192,7 +259,12 @@ def verify_pin_hash(pin, salt, stored_hash):
 
 
 def ensure_pin_security_columns():
-    headers = sheet.row_values(1)
+    headers, rows, header_row = get_sheet_headers_and_rows()
+
+    if headers is None or header_row is None:
+        raise Exception("Customer header row not found.")
+
+    sheet_header_row = header_row + 1
 
     login_pin_col = find_exact_column(headers, ["login pin"])
 
@@ -212,7 +284,7 @@ def ensure_pin_security_columns():
             sheet.add_cols(cols_to_add)
             current_col_count = new_col_number
 
-        sheet.update_cell(1, new_col_number, column_name)
+        sheet.update_cell(sheet_header_row, new_col_number, column_name)
         headers.append(column_name)
 
         return new_col_number - 1
@@ -276,26 +348,20 @@ def customer_has_any_pin(customer):
 def get_customer_info(mobile):
     mobile = normalize_mobile(mobile)
 
-    all_values = sheet.get_all_values()
+    headers, rows, header_row = get_sheet_headers_and_rows()
 
-    header_row = None
-
-    for i, row in enumerate(all_values):
-        if "Mobile No" in row:
-            header_row = i
-            break
-
-    if header_row is None:
+    if headers is None or header_row is None:
         return None
 
-    headers = all_values[header_row]
     print(headers)
     name_col = find_column(headers, ["name"])
     mobile_col = find_column(headers, ["mobile", "phone"])
     status_col = find_column(headers, ["status"])
     liter_col = find_column(headers, ["liter", "litre"])
     flat_col = find_column(headers, ["flat"])
-    balance_col = find_column(headers, ["balance"])
+    balance_col = get_remaining_balance_column(headers)
+    month_end_balance_col = get_month_end_balance_column(headers)
+    pending_payments_col = get_pending_payments_column(headers)
 
     pin_col = find_exact_column(headers, ["login pin"])
     print("PIN COLUMN =", pin_col)
@@ -309,7 +375,7 @@ def get_customer_info(mobile):
         return None
 
     for row_idx, row in enumerate(
-    all_values[header_row + 1:],
+    rows,
     start=header_row + 2
 ):
         if len(row) <= mobile_col:
@@ -346,9 +412,15 @@ def get_customer_info(mobile):
                 ),
 
                 "remaining_balance": (
-                    row[balance_col].strip()
-                    if balance_col is not None and len(row) > balance_col
-                    else "0"
+                    get_row_value(row, balance_col)
+                ),
+
+                "month_end_balance": (
+                    get_row_value(row, month_end_balance_col)
+                ),
+
+                "pending_payments": (
+                    get_row_value(row, pending_payments_col)
                 ),
 
                 "login_pin": (
@@ -480,8 +552,11 @@ def parse_selected_dates(dates=None, start_date_str=None, days=None):
 
 
 def get_date_columns():
-    headers = sheet.row_values(1)
+    headers, rows, header_row = get_sheet_headers_and_rows()
     date_columns = {}
+
+    if headers is None:
+        return date_columns
 
     for idx, header in enumerate(headers, start=1):
         parsed_date = parse_header_date(header)
@@ -526,8 +601,10 @@ def show_delivery_calendar(mobile):
     if not row:
         return "❌ Customer not found."
 
-    headers = sheet.row_values(1)
-    values = sheet.row_values(row)
+    headers, values, header_row = get_customer_values_from_rows(row)
+    if headers is None:
+        return "Customer header row not found."
+
     output = [f"📅 Delivery Calendar ({date.today().strftime('%B %Y')})", ""]
     date_row = []
     value_row = []
@@ -590,8 +667,9 @@ def handle_resume(mobile, dates=None):
 
     row = customer["row"]
     default_quantity = format_quantity(customer["liter"])
-    values = sheet.row_values(row)
+    headers, values, header_row = get_customer_values_from_rows(row)
     updated_dates = []
+    date_columns = get_date_columns()
 
     if dates:
         selected_dates, error = parse_selected_dates(dates=dates)
@@ -602,8 +680,6 @@ def handle_resume(mobile, dates=None):
 
         if any(selected_date <= today for selected_date in selected_dates):
             return "❌ Cannot edit today's or past delivery. Please choose tomorrow or later."
-
-        date_columns = get_date_columns()
 
         for selected_date in selected_dates:
             col = date_columns.get(selected_date)
@@ -616,12 +692,14 @@ def handle_resume(mobile, dates=None):
             updated_dates.append(selected_date.strftime("%d-%m-%Y"))
 
     else:
-        for idx, value in enumerate(values, start=1):
+        for selected_date, idx in sorted(date_columns.items()):
+            value = values[idx - 1] if len(values) >= idx else ""
+
             if str(value).strip().lower() == "ab":
                 cell = gspread.utils.rowcol_to_a1(row, idx)
                 sheet.update_acell(cell, default_quantity)
                 reset_cell_style(cell)
-                updated_dates.append(cell)
+                updated_dates.append(selected_date.strftime("%d-%m-%Y"))
 
     if updated_dates:
         write_log(mobile, "RESUME", ", ".join(updated_dates))
@@ -643,8 +721,7 @@ def get_customer_calendar(mobile):
 
     row = customer["row"]
     default_quantity = format_quantity(customer["liter"])
-    headers = sheet.row_values(1)
-    values = sheet.row_values(row)
+    headers, values, header_row = get_customer_values_from_rows(row)
 
     paused_days = []
     quantity_days = {}
@@ -654,6 +731,19 @@ def get_customer_calendar(mobile):
     current_month = date.today().month
     current_year = date.today().year
     today = date.today()
+
+    if headers is None:
+        return {
+            "paused_days": [],
+            "quantity_days": {},
+            "dates": {},
+            "total_milk": "0",
+            "remaining_milk": "0",
+            "default_quantity": default_quantity,
+            "remaining_balance": customer.get("remaining_balance", "0"),
+            "month_end_balance": customer.get("month_end_balance", "0"),
+            "pending_payments": customer.get("pending_payments", "0"),
+        }
 
     for idx, header in enumerate(headers):
         parsed = parse_header_date(header)
@@ -705,6 +795,8 @@ def get_customer_calendar(mobile):
         "remaining_milk": format_quantity(remaining_milk),
         "default_quantity": default_quantity,
         "remaining_balance": customer.get("remaining_balance", "0"),
+        "month_end_balance": customer.get("month_end_balance", "0"),
+        "pending_payments": customer.get("pending_payments", "0"),
     }
 
 
@@ -724,7 +816,7 @@ def handle_modify_quantity(mobile, qty, dates=None):
     qty_text = format_quantity(qty)
     row = customer["row"]
     date_columns = get_date_columns()
-    values = sheet.row_values(row)
+    headers, values, header_row = get_customer_values_from_rows(row)
     today = date.today()
 
     if dates:
@@ -1231,6 +1323,7 @@ def safe_number(value):
     try:
         text = (
             str(value)
+            .replace("\u20b9", "")
             .replace("₹", "")
             .replace(",", "")
             .replace("L", "")
@@ -1247,34 +1340,24 @@ def safe_number(value):
 
 
 def get_all_customers_for_admin():
-    all_values = sheet.get_all_values()
+    headers, rows, header_row = get_sheet_headers_and_rows()
 
-    if not all_values:
+    if headers is None or header_row is None:
         return []
-
-    header_row = None
-
-    for i, row in enumerate(all_values):
-        if "Mobile No" in row:
-            header_row = i
-            break
-
-    if header_row is None:
-        return []
-
-    headers = all_values[header_row]
 
     name_col = find_column(headers, ["names", "name"])
     mobile_col = find_column(headers, ["mobile"])
     status_col = find_column(headers, ["active", "status"])
     liter_col = find_column(headers, ["subscribed-litre", "subscribed litre", "litre", "liter"])
     flat_col = find_column(headers, ["flat"])
-    balance_col = find_column(headers, ["month-end balance", "remaining balance", "balance"])
+    balance_col = get_remaining_balance_column(headers)
+    month_end_balance_col = get_month_end_balance_column(headers)
+    pending_payments_col = get_pending_payments_column(headers)
 
     customers = []
 
     for row_idx, row in enumerate(
-    all_values[header_row + 1:],
+    rows,
     start=header_row + 2
 ):
         if mobile_col is None or len(row) <= mobile_col:
@@ -1312,9 +1395,15 @@ def get_all_customers_for_admin():
         )
 
         balance = (
-            row[balance_col].strip()
-            if balance_col is not None and len(row) > balance_col
-            else "0"
+            get_row_value(row, balance_col)
+        )
+
+        month_end_balance = (
+            get_row_value(row, month_end_balance_col)
+        )
+
+        pending_payments = (
+            get_row_value(row, pending_payments_col)
         )
 
         customers.append({
@@ -1325,6 +1414,8 @@ def get_all_customers_for_admin():
             "liter": format_quantity(liter),
             "flat_no": flat_no,
             "remaining_balance": balance,
+            "month_end_balance": month_end_balance,
+            "pending_payments": pending_payments,
         })
 
     return customers
@@ -1391,7 +1482,7 @@ def get_tomorrow_delivery_for_admin():
     tomorrow_col = date_columns.get(tomorrow)
 
     customers = get_all_customers_for_admin()
-    all_values = sheet.get_all_values()
+    headers, rows, header_row = get_sheet_headers_and_rows()
 
     deliveries = []
     total_milk = 0.0
@@ -1406,6 +1497,15 @@ def get_tomorrow_delivery_for_admin():
             "message": "Tomorrow date column not found in sheet.",
         }
 
+    if header_row is None:
+        return {
+            "tomorrow_date": tomorrow.strftime("%d-%m-%Y"),
+            "total_milk": "0",
+            "paused_count": 0,
+            "deliveries": [],
+            "message": "Customer header row not found in sheet.",
+        }
+
     for customer in customers:
         status = str(customer.get("status", "")).strip().lower()
 
@@ -1413,11 +1513,12 @@ def get_tomorrow_delivery_for_admin():
             continue
 
         row_index = customer["row"]
+        row_offset = row_index - (header_row + 2)
 
-        if len(all_values) < row_index:
+        if row_offset < 0 or row_offset >= len(rows):
             continue
 
-        row = all_values[row_index - 1]
+        row = rows[row_offset]
 
         value = row[tomorrow_col - 1].strip() if len(row) >= tomorrow_col else ""
 
@@ -1471,6 +1572,8 @@ def get_admin_dashboard_data():
     paused_count = 0
     testing_count = 0
     total_balance = 0.0
+    total_month_end_balance = 0.0
+    customer_pending_payments_amount = 0.0
 
     for customer in customers:
         status = str(customer.get("status", "")).strip().lower()
@@ -1485,6 +1588,8 @@ def get_admin_dashboard_data():
             testing_count += 1
 
         total_balance += safe_number(customer.get("remaining_balance", 0))
+        total_month_end_balance += safe_number(customer.get("month_end_balance", 0))
+        customer_pending_payments_amount += safe_number(customer.get("pending_payments", 0))
 
     pending_amount = sum(
         safe_number(payment.get("amount", 0))
@@ -1498,6 +1603,8 @@ def get_admin_dashboard_data():
         "paused_customers": paused_count,
         "testing_customers": testing_count,
         "total_balance": format_quantity(total_balance),
+        "total_month_end_balance": format_quantity(total_month_end_balance),
+        "customer_pending_payments_amount": format_quantity(customer_pending_payments_amount),
         "pending_payment_count": len(pending_payments),
         "pending_payment_amount": format_quantity(pending_amount),
         "tomorrow_delivery": tomorrow_delivery,
